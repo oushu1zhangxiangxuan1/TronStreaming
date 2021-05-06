@@ -1,0 +1,10 @@
+LevelBase: /Users/johnsaxon/test/github.com/TronStreaming/streaming/data
+
+# block_id: get trans from block_id to now，如果未指定，从当前目录读block.id
+# output: result dir 默认当前目录 如果已存在对应block文件，则直接覆盖，最好写直接路径
+# interval: 轮询时间，单位秒，默认10
+
+Host: localhost
+Port: 4432
+User: gpadmin
+Database: postgres
