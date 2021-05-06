@@ -5,6 +5,7 @@ import logging
 import os
 import json
 import time
+import signal
 
 from tronapi import Tron
 from tronapi import HttpProvider
@@ -37,6 +38,17 @@ def main():
             please recheck config files and contents."
         )
         return
+
+    lastId = -1
+    try:
+        with open("last.id", "r") as f:
+            lastId = int(f.read())
+    except Exception as e:
+        logging.error("Cannot read last id file: {}".format(e))
+    else:
+        gl.config.BlockNum = lastId
+
+    print("gl.config.BlockNum: ", gl.config.BlockNum)
 
     syncTron = SyncTron(gl.config)
     syncTron.sync()
@@ -76,21 +88,32 @@ class SyncTron:
                 )
             )
             time.sleep(self.config.Interval * 60)
-        # 解析参数
+
         while True:
-            newBlock = getLatestBlock()
-            latestNum = int(newBlock["block_header"]["raw_data"]["number"])
-            self.ProcessData(newBlock)
-            if self.curBlock < latestNum:
-                data = getBlockByNum(self.curBlock)
-                self.ProcessData(data)
-                self.curBlock += 1
-            else:
-                logging.info("---sleeping---")
-                logging.info("lastest block: {}".format(latestNum))
-                logging.info("cur block: {}".format(self.curBlock))
+            if gl.stop:
+                with open("last.id", "w") as f:
+                    f.write(str(self.curBlock + 1))
+                return
+            try:
+                if self.curBlock < latestNum:
+                    data = getBlockByNum(self.curBlock)
+                    self.ProcessData(data)
+                    self.curBlock += 1
+                else:
+                    newBlock = getLatestBlock()
+                    latestNum = int(newBlock["block_header"]["raw_data"]["number"])
+                    self.ProcessData(newBlock)
+                    if self.curBlock < latestNum:
+                        continue
+                    logging.info("---sleeping---")
+                    logging.info("lastest block: {}".format(latestNum))
+                    logging.info("cur block: {}".format(self.curBlock))
+                    time.sleep(self.config.Interval)
+            except Exception as e:
+                with open("last.id", "w") as f:
+                    f.write(str(self.curBlock + 1))
+                logging("failed to get block info: ", e)
                 time.sleep(self.config.Interval)
-            # break
 
     def ProcessData(self, block):
         block_num = block["block_header"]["raw_data"]["number"]
@@ -103,5 +126,12 @@ class SyncTron:
         return os.path.join(self.config.OutputDir, file_name)
 
 
+def stop(sig, frame):
+    print("sig: ", sig)
+    print("frame: ", frame)
+    gl.stop = True
+
+
 if "__main__" == __name__:
+    signal.signal(2, stop)
     main()
