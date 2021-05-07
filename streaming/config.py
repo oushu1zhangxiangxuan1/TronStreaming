@@ -12,8 +12,8 @@ from streaming.util.utils import CheckPathAccess
 env.touch()
 
 
-basic: str = './conf/basic.yaml'
-cameras: str = './conf/cameras.yaml'
+basic: str = "./conf/basic.yaml"
+cameras: str = "./conf/cameras.yaml"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -21,9 +21,10 @@ logging.basicConfig(level=logging.INFO)
 class Config:
 
     __MustCheck: List[str] = [
-        'BlockNum',
-        'OutputDir',
-        'Interval',
+        "BlockNum",
+        "OutputDir",
+        "Interval",
+        "Ceiling",
     ]
 
     __isInit: bool = False
@@ -34,11 +35,11 @@ class Config:
     @staticmethod
     def ReadYaml(file: str) -> Tuple[Any, bool]:
         try:
-            with open(file, 'r') as f:
+            with open(file, "r") as f:
                 return yaml.load(f, Loader=yaml.FullLoader), True
         except Exception as e:
             print(e)
-            print("Can not access file:"+file)
+            print("Can not access file:" + file)
             logging.error(e)
             return {}, False
 
@@ -49,7 +50,9 @@ class Config:
         self.basic_config, ok = self.__getBasicConfig()
         if not ok:
             logging.error(
-                "Can not access basic config, please check basic config file:"+self.basic_file)
+                "Can not access basic config, please check basic config file:"
+                + self.basic_file
+            )
             return False
 
         logging.info(self.basic_config)
@@ -57,30 +60,34 @@ class Config:
         for key in self.__MustCheck:
             value = self.basic_config.get(key)
             if value is None:
-                logging.error("Can not find config:"+key)
+                logging.error("Can not find config:" + key)
                 return False
             else:
                 setattr(self, key, value)
 
         ok, err = CheckPathAccess(self.OutputDir)
         if not ok:
-            logging.error("Can not access OutputDir :%s, please check sync.yaml:%s",
-                          self.LogPath, self.cameras_file)
+            logging.error(
+                "Can not access OutputDir :%s, please check sync.yaml:%s",
+                self.LogPath,
+                self.cameras_file,
+            )
             return False
 
         return True
 
 
-if __name__ == '__main__':
-    config = Config('/Users/johnsaxon/test/github.com/TronStreaming/streaming/sync.yaml')
+if __name__ == "__main__":
+    config = Config(
+        "/Users/johnsaxon/test/github.com/TronStreaming/streaming/sync.yaml"
+    )
     ok = config.InitConfig()
     print(ok)
 
     __MustCheck: List[str] = [
-        'BlockNum',
-        'OutputDir',
-        'Interval',
+        "BlockNum",
+        "OutputDir",
+        "Interval",
     ]
     for key in __MustCheck:
         print(getattr(config, key))
-

@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import env
 from streaming.config import Config
-from enum import Enum, unique
 
 # import os
 
@@ -21,7 +20,7 @@ stop: bool = False
 # basic_file: str = os.path.join(env.LITTLEBOY_CV_HOME, 'conf/basic.yaml')
 # cameras_file: str = os.path.join(env.LITTLEBOY_CV_HOME, 'conf/cameras.yaml')
 
-basic_file: str = "/Users/johnsaxon/test/github.com/TronStreaming/streaming/sync.yaml"
+basic_file: str = "./sync.yaml"
 
 # print("basic_file is : ", basic_file)
 # print("cameras_file is : ", cameras_file)

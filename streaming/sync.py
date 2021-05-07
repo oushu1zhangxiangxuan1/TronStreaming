@@ -70,8 +70,11 @@ class SyncTron:
     def __init__(self, config):
         self.config = config
         self.curBlock = config.BlockNum
+        self.sync = self.sync_to_lastest
+        if config.Ceiling > 0:
+            self.sync = self.sync_with_ceiling
 
-    def sync(self):
+    def sync_to_lastest(self):
         # 获取当前最新BlockNum
         newBlock = getLatestBlock()
         latestNum = int(newBlock["block_header"]["raw_data"]["number"])
@@ -92,7 +95,7 @@ class SyncTron:
         while True:
             if gl.stop:
                 with open("last.id", "w") as f:
-                    f.write(str(self.curBlock + 1))
+                    f.write(str(self.curBlock))
                 return
             try:
                 if self.curBlock < latestNum:
@@ -111,8 +114,24 @@ class SyncTron:
                     time.sleep(self.config.Interval)
             except Exception as e:
                 with open("last.id", "w") as f:
-                    f.write(str(self.curBlock + 1))
-                logging("failed to get block info: ", e)
+                    f.write(str(self.curBlock))
+                logging.error("failed to get block info: ", e)
+                time.sleep(self.config.Interval)
+
+    def sync_with_ceiling(self):
+        while self.curBlock <= self.config.Ceiling:
+            if gl.stop:
+                with open("last.id", "w") as f:
+                    f.write(str(self.curBlock))
+                return
+            try:
+                data = getBlockByNum(self.curBlock)
+                self.ProcessData(data)
+                self.curBlock += 1
+            except Exception as e:
+                with open("last.id", "w") as f:
+                    f.write(str(self.curBlock))
+                logging.error("failed to get block info: ", e)
                 time.sleep(self.config.Interval)
 
     def ProcessData(self, block):
@@ -133,5 +152,7 @@ def stop(sig, frame):
 
 
 if "__main__" == __name__:
+    with open("./sync.pid", "w") as f:
+        f.write(str(os.getpid()))
     signal.signal(2, stop)
     main()
