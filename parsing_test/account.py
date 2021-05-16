@@ -43,6 +43,25 @@ while True:
     k, v = next(accountIT)
     accIns = Tron_pb2.Account()
     accIns.ParseFromString(v)
+    if len(accIns.frozen) > 0:
+        print("解析插入失败:\n address hex: {}".format(b2hs(accIns.address)))
+        print("解析插入失败:\n address: {}".format(addressFromBytes(accIns.address)))
+        print("frozen of {} : {}".format(addressFromBytes(k), accIns.frozen))
+        print("frozen type of {} : {}".format(addressFromBytes(k), type(accIns.frozen)))
+        break
+    if len(accIns.frozen_supply) > 0:
+        print("解析插入失败:\n address hex: {}".format(b2hs(accIns.address)))
+        print("解析插入失败:\n address: {}".format(addressFromBytes(accIns.address)))
+        print(
+            "frozen_supply of {} : {}".format(addressFromBytes(k), accIns.frozen_supply)
+        )
+        print(
+            "frozen_supply type of {} : {}".format(
+                addressFromBytes(k), type(accIns.frozen_supply)
+            )
+        )
+        break
+
     if (
         accIns.latest_asset_operation_time is not None
         and len(accIns.latest_asset_operation_time) > 0
@@ -92,21 +111,6 @@ while True:
         print(
             "free_asset_net_usageV2 type of {} : {}".format(
                 addressFromBytes(k), type(accIns.free_asset_net_usageV2)
-            )
-        )
-        break
-
-    if len(accIns.frozen) > 0:
-        print("frozen of {} : {}".format(addressFromBytes(k), accIns.frozen))
-        print("frozen type of {} : {}".format(addressFromBytes(k), type(accIns.frozen)))
-        break
-    if len(accIns.frozen_supply) > 0:
-        print(
-            "frozen_supply of {} : {}".format(addressFromBytes(k), accIns.frozen_supply)
-        )
-        print(
-            "frozen_supply type of {} : {}".format(
-                addressFromBytes(k), type(accIns.frozen_supply)
             )
         )
         break

@@ -15,6 +15,7 @@ import tronapi
 import time
 import traceback
 import logging
+import datetime
 
 from sqlalchemy import create_engine
 import psycopg2
@@ -429,7 +430,7 @@ class CommonParseAndInsert:
         if data is None or len(data) == 0:
             return True, sqlList
         for d in data:
-            ret, subSqls = self.insert_single(data, appendix)
+            ret, subSqls = self.insert_single(d, appendix)
             sqlList += subSqls
             if not ret:
                 return False, sqlList
@@ -526,7 +527,8 @@ def isNumeric(col_type):
     return col_type in ["int", "bigint", "double precision"]
 
 
-if "__main__" == __name__:
+def main():
+
     # if len(os.Args) < 2:
     #     logging.error(
     #         "请输入account数据库位置",
@@ -544,20 +546,28 @@ if "__main__" == __name__:
     try:
         cur = conn.cursor()
         accountDB = plyvel.DB("/data2/20210425/output-directory/database/account")
-        accountIt = accountDB.iterator()
+        # accountIt = accountDB.iterator()
         accInsert = CommonParseAndInsert(
             cursor=cur,
             cols=Account.cols,
             subCols=Account.subCols,
             table=Account.table,
         )
-        for k, v in accountIt:
+        count = 0
+        start = datetime.datetime.now()
+        for k, v in accountDB:
+            if count % 10000 == 0:
+                end = datetime.datetime.now()
+                logging.info(
+                    "已处理 {} 个账户，共耗时 {} 微秒".format(count, (end - start).microseconds)
+                )
             acc = Tron_pb2.Account()
             acc.ParseFromString(v)
             ret, sqls = accInsert.Insert(acc)
             # logging.info("sqls: {}".format(sqls))
             if not ret or len(sqls) == 0:
                 logging.error("===================")
+                logging.error("解析插入失败:\n address hex: {}".format(b2hs(acc.address)))
                 logging.error(
                     "解析插入失败:\n address: {}".format(addressFromBytes(acc.address))
                 )
@@ -565,6 +575,7 @@ if "__main__" == __name__:
                 continue
             cur.execute("".join(sqls))
             conn.commit()
+            count += 1
     except Exception as e:
         traceback.print_exc()
         logging.error("Failed to run main: {}".format(e))
@@ -574,7 +585,55 @@ if "__main__" == __name__:
         finally:
             conn.close()
 
+
+def test():
+    config, err = ConfigParser.Parse()
+    if err is not None:
+        logging.error("Failed to get hawq config: {}".format(err))
+        exit(-1)
+    conn = getConn(config)
+    if not conn:
+        logging.error("Failed to connect hawq : {}".format(err))
+        exit(-1)
+    try:
+        cur = conn.cursor()
+        accountDB = plyvel.DB("/data2/20210425/output-directory/database/account")
+        # accountIt = accountDB.iterator()
+        accInsert = CommonParseAndInsert(
+            cursor=cur,
+            cols=Account.cols,
+            subCols=Account.subCols,
+            table=Account.table,
+        )
+        v = accountDB.get(bytes.fromhex("4100001f9ac7032955f71612dea92dc850ff3fa087"))
+        acc = Tron_pb2.Account()
+        acc.ParseFromString(v)
+        ret, sqls = accInsert.Insert(acc)
+        # logging.info("sqls: {}".format(sqls))
+        if not ret or len(sqls) == 0:
+            logging.error("===================")
+            logging.error("解析插入失败:\n address hex: {}".format(b2hs(acc.address)))
+            logging.error("解析插入失败:\n address: {}".format(addressFromBytes(acc.address)))
+            logging.error("===================\n\n\n")
+    except Exception as e:
+        traceback.print_exc()
+        logging.error("Failed to run main: {}".format(e))
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
+if "__main__" == __name__:
+    main()
+    # test()
+
 # TODO:
-# 1. 处理None值，不再插入  account_votes account_frozen account_frozen_supply
+# 1. 处理None值，不再插入  account_votes account_frozen account_frozen_supply DONE
 # 2. 使用seek并行
 # 3. 删除无用log
+# 4. account count: 30004228
+
+# 5. T9yD9dtZuxPe1pgdQuy3QTXPPK51ukLkmr
+# address hex: b'4100001f9ac7032955f71612dea92dc850ff3fa087'
