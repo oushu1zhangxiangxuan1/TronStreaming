@@ -1,3 +1,7 @@
+DROP TABLE IF EXISTS account, account_resource,account_votes,account_asset,account_asset_v2,
+account_latest_asset_operation_time,account_latest_asset_operation_time_v2,account_frozen,
+account_frozen_supply,account_free_asset_net_usage,account_free_asset_net_usage_v2;
+
 CREATE TABLE account (
     account_name text,
     type int, --Normal = 0; AssetIssue = 1; Contract = 2;
@@ -91,6 +95,11 @@ CREATE TABLE account_free_asset_net_usage_v2 (
     asset_id text,
     net_usage bigint
 );
+
+SELECT * from account_votes;
+SELECT * from account_free_asset_net_usage;
+SELECT * from account_latest_asset_operation_time;
+SELECT * from account_latest_asset_operation_time_v2;
 
 -- pkeys:account_id,asset_id
 CREATE TABLE block (

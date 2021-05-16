@@ -11,11 +11,11 @@ b2hs = binascii.hexlify
 
 
 def addressFromHex(hex_str):
-    return tronapi.common.account.Address().from_hex(hex_str)
+    return tronapi.common.account.Address().from_hex(hex_str).decode()
 
 
 def addressFromBytes(addr):
-    return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr)))
+    return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr))).decode()
     # 会遇到问题 UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb6 in position 3: invalid start byte
 
 
@@ -39,13 +39,77 @@ accountTrieDB = plyvel.DB("/data2/20210425/output-directory/database/accountTrie
 
 
 accountIT = accountDB.iterator()
-k, v = next(accountIT)
-print(k)
-vs = binascii.hexlify(v)
-print(vs)
-accIns = Tron_pb2.Account()
-accIns.ParseFromString(v)
-accIns
+while True:
+    k, v = next(accountIT)
+    accIns = Tron_pb2.Account()
+    accIns.ParseFromString(v)
+    if (
+        accIns.latest_asset_operation_time is not None
+        and len(accIns.latest_asset_operation_time) > 0
+    ):
+        print(
+            "latest_asset_operation_time of {} : {}".format(
+                addressFromBytes(k), accIns.latest_asset_operation_time
+            )
+        )
+        print(
+            "latest_asset_operation_time type of {} : {}".format(
+                addressFromBytes(k), type(accIns.latest_asset_operation_time)
+            )
+        )
+        break
+    if len(accIns.latest_asset_operation_timeV2) > 0:
+        print(
+            "latest_asset_operation_timeV2 of {} : {}".format(
+                addressFromBytes(k), accIns.latest_asset_operation_timeV2
+            )
+        )
+        print(
+            "latest_asset_operation_timeV2 type of {} : {}".format(
+                addressFromBytes(k), type(accIns.latest_asset_operation_timeV2)
+            )
+        )
+        break
+
+    if accIns.free_asset_net_usage is not None and len(accIns.free_asset_net_usage) > 0:
+        print(
+            "free_asset_net_usage of {} : {}".format(
+                addressFromBytes(k), accIns.free_asset_net_usage
+            )
+        )
+        print(
+            "free_asset_net_usage type of {} : {}".format(
+                addressFromBytes(k), type(accIns.free_asset_net_usage)
+            )
+        )
+        break
+    if len(accIns.free_asset_net_usageV2) > 0:
+        print(
+            "free_asset_net_usageV2 of {} : {}".format(
+                addressFromBytes(k), accIns.free_asset_net_usageV2
+            )
+        )
+        print(
+            "free_asset_net_usageV2 type of {} : {}".format(
+                addressFromBytes(k), type(accIns.free_asset_net_usageV2)
+            )
+        )
+        break
+
+    if len(accIns.frozen) > 0:
+        print("frozen of {} : {}".format(addressFromBytes(k), accIns.frozen))
+        print("frozen type of {} : {}".format(addressFromBytes(k), type(accIns.frozen)))
+        break
+    if len(accIns.frozen_supply) > 0:
+        print(
+            "frozen_supply of {} : {}".format(addressFromBytes(k), accIns.frozen_supply)
+        )
+        print(
+            "frozen_supply type of {} : {}".format(
+                addressFromBytes(k), type(accIns.frozen_supply)
+            )
+        )
+        break
 
 
 accountIndexIT = accountIndexDB.iterator()

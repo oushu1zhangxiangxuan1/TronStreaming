@@ -32,11 +32,11 @@ def bytes2HexStr_V2(data):
 
 
 def addressFromHex(hex_str):
-    return tronapi.common.account.Address().from_hex(hex_str)
+    return tronapi.common.account.Address().from_hex(hex_str).decode()
 
 
 def addressFromBytes(addr):
-    return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr)))
+    return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr))).decode()
 
 
 class ConfigParser:
@@ -126,7 +126,7 @@ class OriginColumn:
         subData = getattr(data, self.name)
         if not self.oc:
             return self.String(subData)
-        return self.oc.getatte(subData)
+        return self.oc.getattr(subData)
 
 
 class SubTable:
@@ -197,6 +197,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("amount", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "account_asset_v2": SubTable(
             colName="assetV2",
@@ -205,6 +210,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("amount", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "account_frozen": SubTable(
             sType="list",
@@ -235,6 +245,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("latest_opration_time", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "account_latest_asset_operation_time_v2": SubTable(
             colName="latest_asset_operation_timeV2",
@@ -243,6 +258,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("latest_opration_time", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "free_asset_net_usage": SubTable(
             colName="free_asset_net_usage",
@@ -251,6 +271,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("net_usage", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "account_free_asset_net_usage_v2": SubTable(
             colName="free_asset_net_usageV2",
@@ -259,6 +284,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("net_usage", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "account_resource": SubTable(
             sType="single",
@@ -318,10 +348,10 @@ class Account:
 def loginfo(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        logging.info("=============info===========")
-        logging.info("args:\n{}".format(args))
-        logging.info("kwargs:\n{}".format(kwargs))
-        logging.info("=============info===========")
+        # logging.info("=============info===========")
+        # logging.info("args:\n{}".format(args))
+        # logging.info("kwargs:\n{}".format(kwargs))
+        # logging.info("=============info===========")
         return func(*args, **kwargs)
 
     return wrapper
@@ -365,13 +395,17 @@ class CommonParseAndInsert:
     @loginfo
     def insert_map(self, data, appendix=None):
         sqlList = []
+        appendCols = []
+        appendVals = []
+        if data is None or len(data) == 0:
+            return True, sqlList
+        if appendix:
+            for k, v in appendix.items():
+                appendCols.append(k)
+                appendVals.append(v)
         for key in data:
             insertCols = []
             insertVals = []
-            if appendix:
-                for k, v in appendix.items():
-                    insertCols.append(k)
-                    insertVals.append(v)
             v = data[key]
             # insert key name & value
             insertCols.append(self.mapInfo.key.name)
@@ -380,33 +414,36 @@ class CommonParseAndInsert:
             insertCols.append(self.mapInfo.value.name)
             insertVals.append(self.mapInfo.value.String(v))
 
-            if len(insertCols) == 0:
-                logging.error("insertCols is null")
-                logging.error("data:\n{}\n".format(data))
-                return False, sqlList
+            insertCols += appendCols
+            insertVals += appendVals
             insertSql = "INSERT INTO {}({}) VALUES ({});".format(
                 self.table, ",".join(insertCols), ",".join(insertVals)
             )
-            print(insertSql)
+            # print(insertSql)
             sqlList.append(insertSql)
         return True, sqlList
 
     @loginfo
     def insert_list(self, data, appendix=None):
         sqlList = []
+        if data is None or len(data) == 0:
+            return True, sqlList
         for d in data:
             ret, subSqls = self.insert_single(data, appendix)
-            sqlList.append(subSqls)
+            sqlList += subSqls
             if not ret:
                 return False, sqlList
+        return True, sqlList
 
     @loginfo
     def insert_single(self, data, appendix=None):
         sqlList = []
         insertCols = []
         insertVals = []
+        appendixLen = 0
         if appendix:
             for k, v in appendix.items():
+                appendixLen += 1
                 insertCols.append(k)
                 insertVals.append(v)
         for col, oc in self.cols.items():
@@ -414,7 +451,7 @@ class CommonParseAndInsert:
                 insertCols.append(col)
                 insertVals.append(oc.getattr(data))
 
-        if len(insertCols) == 0:
+        if len(insertCols) <= appendixLen:
             logging.error("insertCols is null")
             logging.error("data:\n{}\n".format(data))
             return False, sqlList
@@ -422,14 +459,18 @@ class CommonParseAndInsert:
             self.table, ",".join(insertCols), ",".join(insertVals)
         )
         sqlList.append(insertSql)
-        print(insertSql)
-        if self.sType == "single":
+        # print(insertSql)
+        if self.sType == "single" and self.subCols:
             for table, st in self.subCols.items():
                 if hasattr(data, st.colName):
                     # 获取数据
                     subData = getattr(data, st.colName)
+                    # logging.info("\n sub data:{}".format(subData))
+                    # logging.info("sub data type:{}\n".format(type(subData)))
                     appendData = self.getAppendix(data, st.appendCols)
                     # 建造类
+                    # logging.info("\nCreate sub class: {}\n".format(table))
+                    # logging.info("sub table: {}\n".format(st))
                     subClass = CommonParseAndInsert(
                         cols=st.cols,
                         subCols=st.subCols,
@@ -451,9 +492,9 @@ class CommonParseAndInsert:
             return None
         appendData = {}
         for col, oc in appendix.items():
-            if hasattr(data, oc.name):
-                v = getattr(data, oc.name)
-                appendData[col] = oc.String(v)
+            if oc.hasattr(data):
+                v = oc.getattr(data)
+                appendData[col] = v
         return appendData
 
 
@@ -514,7 +555,8 @@ if "__main__" == __name__:
             acc = Tron_pb2.Account()
             acc.ParseFromString(v)
             ret, sqls = accInsert.Insert(acc)
-            if not ret:
+            # logging.info("sqls: {}".format(sqls))
+            if not ret or len(sqls) == 0:
                 logging.error("===================")
                 logging.error(
                     "解析插入失败:\n address: {}".format(addressFromBytes(acc.address))
@@ -532,28 +574,7 @@ if "__main__" == __name__:
         finally:
             conn.close()
 
-
-# cols = {
-#     "account_name": "text",
-#     "type": "int",
-#     "address": "text",
-#     "balance": "bigint",
-#     "net_usage": "bigint",
-#     "acquired_delegated_frozen_balance_for_bandwidth": "bigint",
-#     "delegated_frozen_balance_for_bandwidth": "bigint",
-#     "create_time": "bigint",
-#     "latest_opration_time": "bigint",
-#     "allowance": "bigint",
-#     "latest_withdraw_time": "bigint",
-#     "code_2l": "text",
-#     "code_2hs": "text",
-#     "is_witness": "bool",
-#     "is_committee": "bool",
-#     "asset_issued_name": "text",
-#     "asset_issued_ID_2l": "text",
-#     "asset_issued_ID_2hs": "text",
-#     "free_net_usage": "bigint",
-#     "latest_consume_time": "bigint",
-#     "latest_consume_free_time": "bigint",
-#     "account_id": "bytea",
-# }
+# TODO:
+# 1. 处理None值，不再插入  account_votes account_frozen account_frozen_supply
+# 2. 使用seek并行
+# 3. 删除无用log
