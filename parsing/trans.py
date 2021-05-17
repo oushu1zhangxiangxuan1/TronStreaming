@@ -15,11 +15,11 @@ def num2Bytes(n):
 
 
 def addressFromHex(hex_str):
-    return tronapi.common.account.Address().from_hex(hex_str)
+    return tronapi.common.account.Address().from_hex(hex_str).decode()
 
 
 def addressFromBytes(addr):
-    return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr)))
+    return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr))).decode()
     # 会遇到问题 UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb6 in position 3: invalid start byte
 
 

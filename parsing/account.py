@@ -633,7 +633,7 @@ if "__main__" == __name__:
 # 1. 处理None值，不再插入  account_votes account_frozen account_frozen_supply DONE
 # 2. 使用seek并行
 # 3. 删除无用log
-# 4. account count: 30004228
+# 4. account count: 30004228  14ms/acc
 
 # 5. T9yD9dtZuxPe1pgdQuy3QTXPPK51ukLkmr
 # address hex: b'4100001f9ac7032955f71612dea92dc850ff3fa087'

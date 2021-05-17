@@ -1,8 +1,11 @@
-# -*- encoding:"utf-8"-*-
+# -*- encoding: utf-8 -*-
 import Tron_pb2
 
 import json
 import plyvel
+
+import functools
+
 
 from Crypto.Util.number import bytes_to_long as b2l
 
@@ -12,6 +15,7 @@ import tronapi
 import time
 import traceback
 import logging
+import datetime
 
 from sqlalchemy import create_engine
 import psycopg2
@@ -20,24 +24,20 @@ import psycopg2
 logging.basicConfig(level=logging.INFO)
 
 
+def bytes2HexStr(data):
+    return b2hs(data).decode()
+
+
+def bytes2HexStr_V2(data):
+    return "".join(["%02X " % b for b in data])
+
+
 def addressFromHex(hex_str):
-    return tronapi.common.account.Address().from_hex(hex_str)
+    return tronapi.common.account.Address().from_hex(hex_str).decode()
 
 
 def addressFromBytes(addr):
-    return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr)))
-    # TODO: 会遇到问题 UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb6 in position 3: invalid start byte
-
-
-# 同时跑一个checkaccount-index和account的量
-
-# 先从account-index 中取出name和address
-# 然后通过address取account数据
-# 插入address name create_time
-# balance -> trx-balance
-# 插入asset 表
-
-# TODO: address一般需要base58
+    return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr))).decode()
 
 
 class ConfigParser:
@@ -95,16 +95,17 @@ class ConfigParser:
 
 
 class OriginColumn:
-    def __init__(self, name, colType, castFunc=None, oc=None):
+    def __init__(self, colName=None, name=None, colType=None, castFunc=None, oc=None):
         self.oc = oc
         self.name = name
+        self.toNum = None
         if not self.oc:
             self.type = colType
-            self.castFunc = self.castFunc
+            self.castFunc = castFunc
             if castFunc == b2l or colType in ["int64", "int"]:
                 self.toNum = True
             if castFunc is None and colType == "bytes":
-                self.castFunc = b2hs
+                self.castFunc = bytes2HexStr
 
     def String(self, v):
         if self.castFunc:
@@ -126,7 +127,7 @@ class OriginColumn:
         subData = getattr(data, self.name)
         if not self.oc:
             return self.String(subData)
-        return self.oc.getatte(subData)
+        return self.oc.getattr(subData)
 
 
 class SubTable:
@@ -159,9 +160,43 @@ frozen_OC = {
 }
 
 
+class Column:
+    def __init__(self, name, default=""):
+        self.name = name
+        self.default = default
+
+
 class Account:
+
+    colIndex = [
+        Column(name="account_name"),
+        Column(name="type"),
+        Column(name="address"),
+        Column(name="balance"),
+        Column(name="net_usage"),
+        Column(name="acquired_delegated_frozen_balance_for_bandwidth"),
+        Column(name="delegated_frozen_balance_for_bandwidth"),
+        Column(name="create_time"),
+        Column(name="latest_opration_time"),
+        Column(name="allowance"),
+        Column(name="latest_withdraw_time"),
+        Column(name="code_2l"),
+        Column(name="code_2hs"),
+        Column(name="is_witness"),
+        Column(name="is_committee"),
+        Column(name="asset_issued_name"),
+        Column(name="asset_issued_id_2l"),
+        Column(name="asset_issued_id_2hs"),
+        Column(name="free_net_usage"),
+        Column(name="latest_consume_time"),
+        Column(name="latest_consume_free_time"),
+        Column(name="account_id"),
+    ]
+
     cols = {
-        "account_name": OriginColumn("account_name", "bytes"),
+        "account_name": OriginColumn(
+            colName="account_name", name="account_name", colType="bytes"
+        ),
         "type": OriginColumn("type", "int"),
         "address": OriginColumn("address", "bytes", castFunc=addressFromBytes),
         "balance": OriginColumn("balance", "int"),
@@ -189,6 +224,37 @@ class Account:
         "account_id": OriginColumn("account_id", "bytes"),
     }
 
+    # cols = [
+    #     OriginColumn(
+    #         colName="account_name", name="account_name", colType="bytes"
+    #     ),
+    #     OriginColumn(colName="type", colType="int", name="type"),
+    #     OriginColumn(colName="address", colType="bytes", castFunc=addressFromBytes, name="address"),
+    #     "balance": OriginColumn(name="balance", colType="int", colName="balance"),
+    #     "net_usage": OriginColumn(name="net_usage", colType="int64"),
+    #     "acquired_delegated_frozen_balance_for_bandwidth": OriginColumn(
+    #         name="acquired_delegated_frozen_balance_for_bandwidth", colType="int64"
+    #     ),
+    #     "delegated_frozen_balance_for_bandwidth": OriginColumn(
+    #         name="delegated_frozen_balance_for_bandwidth", colType="int64"
+    #     ),
+    #     "create_time": OriginColumn(name="create_time", colType="int64"),
+    #     "latest_opration_time": OriginColumn(name="latest_opration_time", colType="int64"),
+    #     "allowance": OriginColumn(name="allowance", colType="int64"),
+    #     "latest_withdraw_time": OriginColumn(name="latest_withdraw_time", colType="int64"),
+    #     "code_2l": OriginColumn(name="code", colType="bytes", castFunc=b2l),
+    #     "code_2hs": OriginColumn(name="code", colType="bytes"),
+    #     "is_witness": OriginColumn(name="is_witness", colType="bool"),
+    #     "is_committee": OriginColumn(name="is_committee", colType="bool"),
+    #     "asset_issued_name": OriginColumn(name="asset_issued_name", colType="bytes"),
+    #     "asset_issued_id_2l": OriginColumn(name="asset_issued_ID", colType="bytes"),
+    #     "asset_issued_id_2hs": OriginColumn(name="asset_issued_ID", colType="bytes"),
+    #     "free_net_usage": OriginColumn(name="free_net_usage", colType="int64"),
+    #     "latest_consume_time": OriginColumn(name="latest_consume_time", colType="int64"),
+    #     "latest_consume_free_time": OriginColumn(name="latest_consume_free_time", colType="int64"),
+    #     "account_id": OriginColumn(name="account_id", colType="bytes"),
+    # ]
+
     subCols = {
         "account_asset": SubTable(
             colName="asset",
@@ -197,6 +263,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("amount", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "account_asset_v2": SubTable(
             colName="assetV2",
@@ -205,6 +276,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("amount", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "account_frozen": SubTable(
             sType="list",
@@ -235,6 +311,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("latest_opration_time", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "account_latest_asset_operation_time_v2": SubTable(
             colName="latest_asset_operation_timeV2",
@@ -243,6 +324,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("latest_opration_time", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "free_asset_net_usage": SubTable(
             colName="free_asset_net_usage",
@@ -251,6 +337,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("net_usage", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "account_free_asset_net_usage_v2": SubTable(
             colName="free_asset_net_usageV2",
@@ -259,6 +350,11 @@ class Account:
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("net_usage", "int64"),
             ),
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
         ),
         "account_resource": SubTable(
             sType="single",
@@ -299,9 +395,7 @@ class Account:
             sType="list",
             colName="votes",
             cols={
-                "vote_address": OriginColumn(
-                    "vote_address", "bytes"
-                ),  # TODO: vote address 是否需要转base58
+                "vote_address": OriginColumn("vote_address", "bytes"),
                 "vote_count": OriginColumn("vote_count", "int64"),
             },
             subCols=None,
@@ -317,6 +411,18 @@ class Account:
     table = "account"
 
 
+def loginfo(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # logging.info("=============info===========")
+        # logging.info("args:\n{}".format(args))
+        # logging.info("kwargs:\n{}".format(kwargs))
+        # logging.info("=============info===========")
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 class CommonParseAndInsert:
     def __init__(
         self,
@@ -326,6 +432,7 @@ class CommonParseAndInsert:
         sType="single",
         mapInfo=None,
         errKeys=None,
+        cursor=None,
     ):
         self.cols = cols
         self.subCols = subCols
@@ -342,50 +449,67 @@ class CommonParseAndInsert:
         else:
             self.Insert = self.insert_error
 
-    def insert_error(self, data, appendix=None):
-        logging.error("===============")
-        logging.error("Invalid sType {}: ", self.sType)
-        logging.error("===============\n\n\n")
-        return False
+    # def insert_wrapper(
+    #     func,
+    # ):
+    #     return func
 
+    def insert_error(self, data, appendix=None):
+        logging.error("Invalid sType {}: ", self.sType)
+        return False, []
+
+    @loginfo
     def insert_map(self, data, appendix=None):
-        insertCols = []
-        insertVals = []
+        sqlList = []
+        appendCols = []
+        appendVals = []
+        if data is None or len(data) == 0:
+            return True, sqlList
         if appendix:
             for k, v in appendix.items():
-                insertCols.append(k)
-                insertVals.append(v)
-        for key in self.data:
-            v = self.data[key]
-
+                appendCols.append(k)
+                appendVals.append(v)
+        for key in data:
+            insertCols = []
+            insertVals = []
+            v = data[key]
             # insert key name & value
             insertCols.append(self.mapInfo.key.name)
-            insertVals.append(self.mapInfo.key.getattr(key))
+            insertVals.append(self.mapInfo.key.String(key))
 
             insertCols.append(self.mapInfo.value.name)
-            insertVals.append(self.mapInfo.value.getattr(v))
+            insertVals.append(self.mapInfo.value.String(v))
 
-        if len(insertCols) == 0:
-            logging.error("===============")
-            logging.error("insertCols is null")
-            logging.error("===============\n\n\n")
-            return False
-        insertSql = "INSERT INTO {}({}) VALUES ({});".format(
-            self.table, ",".join(insertCols), ",".join(insertVals)
-        )
-        print(insertSql)
-        return True
+            insertCols += appendCols
+            insertVals += appendVals
+            insertSql = "INSERT INTO {}({}) VALUES ({});".format(
+                self.table, ",".join(insertCols), ",".join(insertVals)
+            )
+            # print(insertSql)
+            sqlList.append(insertSql)
+        return True, sqlList
 
+    @loginfo
     def insert_list(self, data, appendix=None):
+        sqlList = []
+        if data is None or len(data) == 0:
+            return True, sqlList
         for d in data:
-            if not self.insert_single(data, appendix):
-                return False
+            ret, subSqls = self.insert_single(d, appendix)
+            sqlList += subSqls
+            if not ret:
+                return False, sqlList
+        return True, sqlList
 
+    @loginfo
     def insert_single(self, data, appendix=None):
+        sqlList = []
         insertCols = []
         insertVals = []
+        appendixLen = 0
         if appendix:
             for k, v in appendix.items():
+                appendixLen += 1
                 insertCols.append(k)
                 insertVals.append(v)
         for col, oc in self.cols.items():
@@ -393,22 +517,26 @@ class CommonParseAndInsert:
                 insertCols.append(col)
                 insertVals.append(oc.getattr(data))
 
-        if len(insertCols) == 0:
-            logging.error("===============")
+        if len(insertCols) <= appendixLen:
             logging.error("insertCols is null")
-            logging.error("===============\n\n\n")
-            return False
+            logging.error("data:\n{}\n".format(data))
+            return False, sqlList
         insertSql = "INSERT INTO {}({}) VALUES ({});".format(
             self.table, ",".join(insertCols), ",".join(insertVals)
         )
-        print(insertSql)
-        if self.sType == "single":
+        sqlList.append(insertSql)
+        # print(insertSql)
+        if self.sType == "single" and self.subCols:
             for table, st in self.subCols.items():
                 if hasattr(data, st.colName):
                     # 获取数据
                     subData = getattr(data, st.colName)
+                    # logging.info("\n sub data:{}".format(subData))
+                    # logging.info("sub data type:{}\n".format(type(subData)))
                     appendData = self.getAppendix(data, st.appendCols)
                     # 建造类
+                    # logging.info("\nCreate sub class: {}\n".format(table))
+                    # logging.info("sub table: {}\n".format(st))
                     subClass = CommonParseAndInsert(
                         cols=st.cols,
                         subCols=st.subCols,
@@ -416,54 +544,56 @@ class CommonParseAndInsert:
                         mapInfo=st.mapInfo,
                         sType=st.sType,
                     )
-                    ret = subClass.insert(
+                    ret, subSqls = subClass.Insert(
                         data=subData,
                         appendix=appendData,
                     )
+                    sqlList = sqlList + subSqls
                     if not ret:
-                        return ret
-        return True
+                        return False, sqlList
+        return True, sqlList
 
     def getAppendix(self, data, appendix):
         if not appendix:
             return None
         appendData = {}
         for col, oc in appendix.items():
-            if hasattr(data, oc.name):
-                v = getattr(data, col)
-                appendData[col] = oc.String(v)
+            if oc.hasattr(data):
+                v = oc.getattr(data)
+                appendData[col] = v
         return appendData
 
 
 def getConn(config):
     try:
         conn = psycopg2.connect(
-            database=config["hawq"]["database"],
-            user=config["hawq"]["user"],
-            password=config["hawq"]["password"],
-            host=config["hawq"]["master"],
-            port=str(config["hawq"]["port"]),
+            database=config["database"],
+            user=config["user"],
+            password=config["password"],
+            host=config["master"],
+            port=str(config["port"]),
         )
+        return conn
     except Exception as e:
         logging.error("Conn hawq master failed!")
         logging.error(e)
         logging.error(traceback.format_exc())
         conn = psycopg2.connect(
-            database=config["hawq"]["postgres"],
-            user=config["hawq"]["user"],
-            password=config["hawq"]["password"],
-            host=config["hawq"]["master"],
-            port=str(config["hawq"]["port"]),
+            database=config["database"],
+            user=config["user"],
+            password=config["password"],
+            host=config["standby"],
+            port=str(config["port"]),
         )
-    conn.commit()
-    conn.close()
+        return conn
 
 
 def isNumeric(col_type):
     return col_type in ["int", "bigint", "double precision"]
 
 
-if "__main__" == __name__:
+def main():
+
     # if len(os.Args) < 2:
     #     logging.error(
     #         "请输入account数据库位置",
@@ -475,45 +605,100 @@ if "__main__" == __name__:
         logging.error("Failed to get hawq config: {}".format(err))
         exit(-1)
     conn = getConn(config)
+    if not conn:
+        logging.error("Failed to connect hawq : {}".format(err))
+        exit(-1)
     try:
         cur = conn.cursor()
         accountDB = plyvel.DB("/data2/20210425/output-directory/database/account")
-        accountIt = accountDB.iterator()
+        # accountIt = accountDB.iterator()
         accInsert = CommonParseAndInsert(
+            cursor=cur,
             cols=Account.cols,
             subCols=Account.subCols,
             table=Account.table,
         )
-        for k, v in accountIt:
+        count = 0
+        start = datetime.datetime.now()
+        for k, v in accountDB:
+            if count % 10000 == 0:
+                end = datetime.datetime.now()
+                logging.info(
+                    "已处理 {} 个账户，共耗时 {} 微秒".format(count, (end - start).microseconds)
+                )
             acc = Tron_pb2.Account()
             acc.ParseFromString(v)
-            acc.Insert(acc)
+            ret, sqls = accInsert.Insert(acc)
+            # logging.info("sqls: {}".format(sqls))
+            if not ret or len(sqls) == 0:
+                logging.error("===================")
+                logging.error("解析插入失败:\n address hex: {}".format(b2hs(acc.address)))
+                logging.error(
+                    "解析插入失败:\n address: {}".format(addressFromBytes(acc.address))
+                )
+                logging.error("===================\n\n\n")
+                continue
+            cur.execute("".join(sqls))
             conn.commit()
+            count += 1
+    except Exception as e:
+        traceback.print_exc()
+        logging.error("Failed to run main: {}".format(e))
     finally:
-        conn.close()
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
 
 
-# cols = {
-#     "account_name": "text",
-#     "type": "int",
-#     "address": "text",
-#     "balance": "bigint",
-#     "net_usage": "bigint",
-#     "acquired_delegated_frozen_balance_for_bandwidth": "bigint",
-#     "delegated_frozen_balance_for_bandwidth": "bigint",
-#     "create_time": "bigint",
-#     "latest_opration_time": "bigint",
-#     "allowance": "bigint",
-#     "latest_withdraw_time": "bigint",
-#     "code_2l": "text",
-#     "code_2hs": "text",
-#     "is_witness": "bool",
-#     "is_committee": "bool",
-#     "asset_issued_name": "text",
-#     "asset_issued_ID_2l": "text",
-#     "asset_issued_ID_2hs": "text",
-#     "free_net_usage": "bigint",
-#     "latest_consume_time": "bigint",
-#     "latest_consume_free_time": "bigint",
-#     "account_id": "bytea",
-# }
+def test():
+    config, err = ConfigParser.Parse()
+    if err is not None:
+        logging.error("Failed to get hawq config: {}".format(err))
+        exit(-1)
+    conn = getConn(config)
+    if not conn:
+        logging.error("Failed to connect hawq : {}".format(err))
+        exit(-1)
+    try:
+        cur = conn.cursor()
+        accountDB = plyvel.DB("/data2/20210425/output-directory/database/account")
+        # accountIt = accountDB.iterator()
+        accInsert = CommonParseAndInsert(
+            cursor=cur,
+            cols=Account.cols,
+            subCols=Account.subCols,
+            table=Account.table,
+        )
+        v = accountDB.get(bytes.fromhex("4100001f9ac7032955f71612dea92dc850ff3fa087"))
+        acc = Tron_pb2.Account()
+        acc.ParseFromString(v)
+        ret, sqls = accInsert.Insert(acc)
+        # logging.info("sqls: {}".format(sqls))
+        if not ret or len(sqls) == 0:
+            logging.error("===================")
+            logging.error("解析插入失败:\n address hex: {}".format(b2hs(acc.address)))
+            logging.error("解析插入失败:\n address: {}".format(addressFromBytes(acc.address)))
+            logging.error("===================\n\n\n")
+    except Exception as e:
+        traceback.print_exc()
+        logging.error("Failed to run main: {}".format(e))
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
+if "__main__" == __name__:
+    main()
+    # test()
+
+# TODO:
+# 1. 处理None值，不再插入  account_votes account_frozen account_frozen_supply DONE
+# 2. 使用seek并行
+# 3. 删除无用log
+# 4. account count: 30004228  14ms/acc
+
+# 5. T9yD9dtZuxPe1pgdQuy3QTXPPK51ukLkmr
+# address hex: b'4100001f9ac7032955f71612dea92dc850ff3fa087'
