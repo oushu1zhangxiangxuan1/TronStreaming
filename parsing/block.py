@@ -1,26 +1,34 @@
 # -*- encoding: utf-8 -*-
-import Tron_pb2
+import env
+from parsing import Tron_pb2
+from typing import Tuple
 
 import json
 import plyvel
 
 import functools
-
+import hashlib
+import csv
 
 from Crypto.Util.number import bytes_to_long as b2l
-
-# from Crypto.Util.number import long_to_bytes as l2b
 from binascii import hexlify as b2hs
 import tronapi
-import time
 import traceback
 import logging
 import datetime
 
-from sqlalchemy import create_engine
-import psycopg2
+import os
+from os import path
 
+from parsing import contract
 
+# import parsing.contract as contract
+
+# from parsing.contract import getContractParser
+
+# .getContractParser as getContractParser
+
+env.touch()
 logging.basicConfig(level=logging.INFO)
 
 
@@ -40,65 +48,166 @@ def addressFromBytes(addr):
     return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr))).decode()
 
 
+class TransWriter:
+
+    init = False
+
+    # ouput folders
+    tables = [
+        "block",
+        "trans",
+        "trans_market_order_detail",
+        "trans_auths",
+        "account_create_contract",
+        "transfer_contract",
+        "transfer_asset_contract",
+        "vote_asset_contract",
+        "vote_witness_contract",
+        "witness_create_contract",
+        "asset_issue_contract",
+        "asset_issue_contract_frozen_supply",
+        "witness_update_contract",
+        "participate_asset_issue_contract",
+        "account_update_contract",
+        "freeze_balance_contract",
+        "unfreeze_balance_contract",
+        "withdraw_balance_contract",
+        "unfreeze_asset_contract",
+        "update_asset_contract",
+        "proposal_create_contract",
+        "proposal_approve_contract",
+        "proposal_delete_contract",
+        "set_account_id_contract",
+        "create_smart_contract",
+        "trigger_smart_contract",
+        "update_setting_contract",
+        "exchange_create_contract",
+        "exchange_inject_contract",
+        "exchange_withdraw_contract",
+        "exchange_transaction_contract",
+        "update_energy_limit_contract",
+        "account_permission_update_contract",
+        "clear_abi_contract",
+        "update_brokerage_contract",
+        "shielded_transfer_contract",
+    ]
+
+    TableWriter = {}
+
+    def __init__(self, config):
+        if self.init:
+            raise "TransWriter has been inited!"
+        self.config = config
+        try:
+            self._initWriter()
+        except Exception as e:
+            self.close()
+            raise e
+
+    """
+    根据config中outputpath, 创建对应的表目录和以start-num和end-num的csv文件
+    打开追加写入的handler
+    """
+
+    def _initWriter(self):
+        for d in self.tables:
+            table_dir = path.join(self.config.output_dir, d)
+            os.mkdirs(table_dir)
+            csv_path = path.join(
+                table_dir,
+                "{}-{}.csv".format(self.config.start_num, self.config.end_num),
+            )
+            if os.access(csv_path, os.F_OK):
+                logging.error("{} already exists!".format(csv_path))
+                raise "Failed to init writers: {}".format(
+                    "{} already exists!".format(csv_path)
+                )
+            f = open(csv_path, "w")
+            self.TableWriter[d] = csv.writer(f)
+
+    def write(self, table, data):
+        self.TableWriter[table].writerow(data)
+
+    def close(self):
+        for t, w in self.TableWriter.values():
+            try:
+                w.close()
+            except Exception:
+                logging.error("Failed to close {}'s writer.".format(t))
+
+
+def CheckPathAccess(path: str) -> Tuple[bool, str]:
+    if not os.path.isdir(path):
+        return False, "Dir not exists."
+    if not os.access(path, os.W_OK):
+        return False, "Permission denied."
+    return True, None
+
+
 class ConfigParser:
     @staticmethod
     def Parse():
         # valid = False
         config = None
         try:
-            with open("./hawq.json") as f:
+            with open("./block.json") as f:
                 config = json.load(f)
         except Exception as e:
             logging.error(e)
             return None, "Parse config json error."
         logging.warn("config is : {}".format(config))
-        # check hawq config
-        master = config.get("master")
-        standby = config.get("standby")
-        if (master is None or len(master.strip()) == 0) and (
-            standby is None or len(standby.strip()) == 0
-        ):
-            logging.error("Hawq master and standby not specified.")
-            return None, "Hawq master and standby not specified."
-        if master is not None:
-            config["master"] = master.strip()
-        else:
-            config["master"] = ""
 
-        if standby is not None:
-            config["standby"] = standby.strip()
-        else:
-            config["standby"] = ""
+        inputDir = config.get("input_dir")
+        if inputDir is None or len(inputDir.strip()) == 0:
+            logging.error("input_dir not specified.")
+            return None, "input_dir not specified."
 
-        port = config.get("port")
-        if port is None:
-            logging.error("Hawq port not specified.")
-            return None, "Hawq port not specified."
+        # check block_dir block_index_dir exists
+        block_dir = path.join(inputDir, "block")
+        block_index_dir = path.join(inputDir, "block-index")
+        ok, err = CheckPathAccess(block_dir)
+        if not ok:
+            logging.error("block dir {}.".format(err))
+            return None, "block dir {}.".format(err)
+        ok, err = CheckPathAccess(block_index_dir)
+        if not ok:
+            logging.error("block_index_dir {}.".format(err))
+            return None, "block_index_dir {}.".format(err)
 
-        user = config.get("user")
-        if user is None or len(user.strip()) == 0:
-            logging.error("Hawq user not specified.")
-            return None, "Hawq user not specified."
+        outputDir = config.get("output_dir")
+        if outputDir is None or len(outputDir.strip()) == 0:
+            logging.error("output_dir not specified.")
+            return None, "output_dir not specified."
+        ok, err = CheckPathAccess(outputDir)
+        if not ok:
+            logging.error("output_dir {}.".format(err))
+            return None, "output_dir {}.".format(err)
 
-        password = config.get("password")
-        if password is None:
-            logging.error("Hawq password not specified.")
-            return None, "Hawq password not specified."
+        start_num = config.get("start_num")
+        if start_num is None or type(start_num) is not int or start_num < 0:
+            logging.error("start_num should be positive integer.")
+            return None, "start_num should be positive integer."
 
-        database = config.get("database")
-        if database is None or len(database.strip()) == 0:
-            logging.error("Hawq database not specified.")
-            return None, "Hawq database not specified."
-        config["database"] = database.strip()
+        end_num = config.get("end_num")
+        if end_num is None or type(end_num) is not int or end_num < 0:
+            logging.error("end_num should be positive integer.")
+            return None, "end_num should be positive integer."
+
+        if start_num >= end_num:
+            logging.error("end_num greater than start_num.")
+            return None, "end_num greater than start_num."
 
         return config, None
 
 
 class OriginColumn:
-    def __init__(self, name=None, colType=None, castFunc=None, oc=None):
+    def __init__(
+        self, name=None, colType="bytes", castFunc=None, oc=None, listHead=False
+    ):
         self.oc = oc
         self.name = name
         self.toNum = None
+        self.listHead = listHead
         if not self.oc:
             self.type = colType
             self.castFunc = castFunc
@@ -115,6 +224,8 @@ class OriginColumn:
         return "'{}'".format(v)
 
     def hasattr(self, data):
+        if self.listHead:
+            data = data[0]
         has = hasattr(data, self.name)
         if not self.oc:
             return has
@@ -124,6 +235,8 @@ class OriginColumn:
         return False
 
     def getattr(self, data):
+        if self.listHead:
+            data = data[0]
         subData = getattr(data, self.name)
         if not self.oc:
             return self.String(subData)
@@ -152,198 +265,6 @@ class MapInfo:
     def __init__(self, key, value):
         self.key = key
         self.value = value
-
-
-frozen_OC = {
-    "frozen_balance": OriginColumn("frozen_balance", "int64"),
-    "expire_time": OriginColumn("expire_time", "int64"),
-}
-
-
-class Account:
-    cols = {
-        "account_name": OriginColumn("account_name", "bytes"),
-        "type": OriginColumn("type", "int"),
-        "address": OriginColumn("address", "bytes", castFunc=addressFromBytes),
-        "balance": OriginColumn("balance", "int"),
-        "net_usage": OriginColumn("net_usage", "int64"),
-        "acquired_delegated_frozen_balance_for_bandwidth": OriginColumn(
-            "acquired_delegated_frozen_balance_for_bandwidth", "int64"
-        ),
-        "delegated_frozen_balance_for_bandwidth": OriginColumn(
-            "delegated_frozen_balance_for_bandwidth", "int64"
-        ),
-        "create_time": OriginColumn("create_time", "int64"),
-        "latest_opration_time": OriginColumn("latest_opration_time", "int64"),
-        "allowance": OriginColumn("allowance", "int64"),
-        "latest_withdraw_time": OriginColumn("latest_withdraw_time", "int64"),
-        "code_2l": OriginColumn("code", "bytes", castFunc=b2l),
-        "code_2hs": OriginColumn("code", "bytes"),
-        "is_witness": OriginColumn("is_witness", "bool"),
-        "is_committee": OriginColumn("is_committee", "bool"),
-        "asset_issued_name": OriginColumn("asset_issued_name", "bytes"),
-        "asset_issued_id_2l": OriginColumn("asset_issued_ID", "bytes"),
-        "asset_issued_id_2hs": OriginColumn("asset_issued_ID", "bytes"),
-        "free_net_usage": OriginColumn("free_net_usage", "int64"),
-        "latest_consume_time": OriginColumn("latest_consume_time", "int64"),
-        "latest_consume_free_time": OriginColumn("latest_consume_free_time", "int64"),
-        "account_id": OriginColumn("account_id", "bytes"),
-    }
-
-    subCols = {
-        "account_asset": SubTable(
-            colName="asset",
-            sType="map",
-            mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("amount", "int64"),
-            ),
-            appendCols={
-                "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
-                )
-            },
-        ),
-        "account_asset_v2": SubTable(
-            colName="assetV2",
-            sType="map",
-            mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("amount", "int64"),
-            ),
-            appendCols={
-                "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
-                )
-            },
-        ),
-        "account_frozen": SubTable(
-            sType="list",
-            colName="frozen",
-            cols=frozen_OC,
-            subCols=None,
-            appendCols={
-                "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
-                )
-            },
-        ),
-        "account_frozen_supply": SubTable(
-            sType="list",
-            colName="frozen",
-            cols=frozen_OC,
-            subCols=None,
-            appendCols={
-                "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
-                )
-            },
-        ),
-        "account_latest_asset_operation_time": SubTable(
-            colName="latest_asset_operation_time",
-            sType="map",
-            mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("latest_opration_time", "int64"),
-            ),
-            appendCols={
-                "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
-                )
-            },
-        ),
-        "account_latest_asset_operation_time_v2": SubTable(
-            colName="latest_asset_operation_timeV2",
-            sType="map",
-            mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("latest_opration_time", "int64"),
-            ),
-            appendCols={
-                "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
-                )
-            },
-        ),
-        "free_asset_net_usage": SubTable(
-            colName="free_asset_net_usage",
-            sType="map",
-            mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("net_usage", "int64"),
-            ),
-            appendCols={
-                "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
-                )
-            },
-        ),
-        "account_free_asset_net_usage_v2": SubTable(
-            colName="free_asset_net_usageV2",
-            sType="map",
-            mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("net_usage", "int64"),
-            ),
-            appendCols={
-                "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
-                )
-            },
-        ),
-        "account_resource": SubTable(
-            sType="single",
-            colName="account_resource",
-            cols={
-                "energy_usage": OriginColumn("energy_usage", "int64"),
-                "frozen_balance_for_energy": OriginColumn(
-                    name="frozen_balance_for_energy",
-                    oc=OriginColumn(name="frozen_balance", colType="int64"),
-                ),
-                "frozen_balance_for_energy_expire_time": OriginColumn(
-                    name="frozen_balance_for_energy",
-                    oc=OriginColumn(name="expire_time", colType="int64"),
-                ),
-                "latest_consume_time_for_energy": OriginColumn(
-                    "latest_consume_time_for_energy", "int64"
-                ),
-                "acquired_delegated_frozen_balance_for_energy": OriginColumn(
-                    "acquired_delegated_frozen_balance_for_energy", "int64"
-                ),
-                "delegated_frozen_balance_for_energy": OriginColumn(
-                    "delegated_frozen_balance_for_energy", "int64"
-                ),
-                "storage_limit": OriginColumn("storage_limit", "int64"),
-                "storage_usage": OriginColumn("storage_usage", "int64"),
-                "latest_exchange_storage_time": OriginColumn(
-                    "latest_exchange_storage_time", "int64"
-                ),
-            },
-            subCols=None,
-            appendCols={
-                "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
-                )
-            },
-        ),
-        "account_votes": SubTable(
-            sType="list",
-            colName="votes",
-            cols={
-                "vote_address": OriginColumn("vote_address", "bytes"),
-                "vote_count": OriginColumn("vote_count", "int64"),
-            },
-            subCols=None,
-            appendCols={
-                "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
-                )
-            },
-            mapInfo=None,
-        ),
-    }
-
-    table = "account"
 
 
 def loginfo(func):
@@ -499,41 +420,8 @@ class CommonParseAndInsert:
         return appendData
 
 
-def getConn(config):
-    try:
-        conn = psycopg2.connect(
-            database=config["database"],
-            user=config["user"],
-            password=config["password"],
-            host=config["master"],
-            port=str(config["port"]),
-        )
-        return conn
-    except Exception as e:
-        logging.error("Conn hawq master failed!")
-        logging.error(e)
-        logging.error(traceback.format_exc())
-        conn = psycopg2.connect(
-            database=config["database"],
-            user=config["user"],
-            password=config["password"],
-            host=config["standby"],
-            port=str(config["port"]),
-        )
-        return conn
-
-
-def isNumeric(col_type):
-    return col_type in ["int", "bigint", "double precision"]
-
-
 def num2Bytes(n):
     return n.to_bytes(8, "big")
-
-
-def p_block(block):
-    # 按顺序生成一个list，并使用对应writer去writerow
-    return True
 
 
 class OriginColumnWapper:
@@ -549,146 +437,396 @@ class ColumnIndex:
         self.oc = oc
 
 
-class BlockParser:
+class BaseParser:
+    colIndex = []
+    table = None
 
-    @staticmethod
-    def _blockHeaderWrapper(oc):
-        return OriginColumn(name="block_header", oc=OriginColumn(name="raw_data", oc=oc))
+    def Parse(self, writer, data, appendData):
+        if len(self.colIndex) == 0 or self.table is None:
+            logging.error("请勿直接调用抽象类方法，请实例化类并未对象变量赋值")
+            return False
+
+        vals = []
+        for col in self.colIndex:
+            if col.FromAppend:
+                vals.append(appendData[col.name])
+            else:
+                vals.append(col.oc.getattr(data))
+        self.Write(writer, vals)
+        return True
+
+    def Write(self, writer, data):
+        writer[self.table].write(data)
+
+
+def _blockHeaderWrapper(oc):
+    return OriginColumn(name="block_header", oc=OriginColumn(name="raw_data", oc=oc))
+
+
+class BlockParser(BaseParser):
 
     colIndex = [
         ColumnIndex(name="block_num", fromAppend=True),
         ColumnIndex(name="hash", fromAppend=True),
-        ColumnIndex(name="parent_hash", oc=_blockHeaderWrapper(OriginColumn(name="parentHash", colType="bytes"))),
-        ColumnIndex(name="create_time", oc=_blockHeaderWrapper(OriginColumn(name="timestamp", colType="bytes"))),
-        ColumnIndex(name="version", oc=_blockHeaderWrapper(OriginColumn(name="version", colType="int32"))),
-        ColumnIndex(name="witness_address", oc=_blockHeaderWrapper(OriginColumn(name="witness_address", castFunc=addressFromBytes))),
-        ColumnIndex(name="witness_id", oc=_blockHeaderWrapper(OriginColumn(name="witness_id", colType="int64"))),
-        ColumnIndex(name="tx_count", oc=OriginColumn(name="transactions", colType=len)),
-        ColumnIndex(name="tx_trie_root", oc=_blockHeaderWrapper(OriginColumn(name="txTrieRoot", colType="bytes"))),
-        ColumnIndex(name="witness_signature", oc=OriginColumn(name="block_header", oc=OriginColumn(name="witness_signature", colType="bytes"))),
-        ColumnIndex(name="account_state_root", oc=_blockHeaderWrapper(OriginColumn(name="accountStateRoot", colType="bytes"))),
+        ColumnIndex(
+            name="parent_hash",
+            oc=_blockHeaderWrapper(OriginColumn(name="parentHash", colType="bytes")),
+        ),
+        ColumnIndex(
+            name="create_time",
+            oc=_blockHeaderWrapper(OriginColumn(name="timestamp", colType="bytes")),
+        ),
+        ColumnIndex(
+            name="version",
+            oc=_blockHeaderWrapper(OriginColumn(name="version", colType="int32")),
+        ),
+        ColumnIndex(
+            name="witness_address",
+            oc=_blockHeaderWrapper(
+                OriginColumn(name="witness_address", castFunc=addressFromBytes)
+            ),
+        ),
+        ColumnIndex(
+            name="witness_id",
+            oc=_blockHeaderWrapper(OriginColumn(name="witness_id", colType="int64")),
+        ),
+        ColumnIndex(
+            name="tx_count", oc=OriginColumn(name="transactions", castFunc=len)
+        ),
+        ColumnIndex(
+            name="tx_trie_root",
+            oc=_blockHeaderWrapper(OriginColumn(name="txTrieRoot", colType="bytes")),
+        ),
+        ColumnIndex(
+            name="witness_signature",
+            oc=OriginColumn(
+                name="block_header",
+                oc=OriginColumn(name="witness_signature", colType="bytes"),
+            ),
+        ),
+        ColumnIndex(
+            name="account_state_root",
+            oc=_blockHeaderWrapper(
+                OriginColumn(name="accountStateRoot", colType="bytes")
+            ),
+        ),
     ]
 
-    # cols = {
+    subTables = {
+        "trans": SubTable(
+            colName="transactions",
+            sType="list",
+            cols=[
+                ColumnIndex(name="block_num", fromAppend=True),
+                ColumnIndex(name="hash", fromAppend=True),
+                ColumnIndex(
+                    name="parent_hash",
+                    oc=_blockHeaderWrapper(
+                        OriginColumn(name="parentHash", colType="bytes")
+                    ),
+                ),
+                ColumnIndex(
+                    name="create_time",
+                    oc=_blockHeaderWrapper(
+                        OriginColumn(name="timestamp", colType="bytes")
+                    ),
+                ),
+                ColumnIndex(
+                    name="version",
+                    oc=_blockHeaderWrapper(
+                        OriginColumn(name="version", colType="int32")
+                    ),
+                ),
+                ColumnIndex(
+                    name="witness_address",
+                    oc=_blockHeaderWrapper(
+                        OriginColumn(name="witness_address", castFunc=addressFromBytes)
+                    ),
+                ),
+                ColumnIndex(
+                    name="witness_id",
+                    oc=_blockHeaderWrapper(
+                        OriginColumn(name="witness_id", colType="int64")
+                    ),
+                ),
+                ColumnIndex(
+                    name="tx_count", oc=OriginColumn(name="transactions", castFunc=len)
+                ),
+                ColumnIndex(
+                    name="tx_trie_root",
+                    oc=_blockHeaderWrapper(
+                        OriginColumn(name="txTrieRoot", colType="bytes")
+                    ),
+                ),
+                ColumnIndex(
+                    name="witness_signature",
+                    oc=OriginColumn(
+                        name="block_header",
+                        oc=OriginColumn(name="witness_signature", colType="bytes"),
+                    ),
+                ),
+                ColumnIndex(
+                    name="account_state_root",
+                    oc=_blockHeaderWrapper(
+                        OriginColumn(name="accountStateRoot", colType="bytes")
+                    ),
+                ),
+            ],
+            appendCols={
+                "account_address": OriginColumn(
+                    "address", "bytes", castFunc=addressFromBytes
+                )
+            },
+        ),
+    }
 
-    # }
-    #     # OriginColumnWapper(name="block_num", oc=OriginColumn())
-    #     OriginColumnWapper(name="parent_hash", oc=OriginColumn(name"block_header"))
-    # ]
+    table = "block"
 
-    # def __init__(self, data, appendData):
-    #     self.data = data
-    #     self.appendData = appendData
+    def Parse(self, writer, data, appendData):
+        super().Parse(writer, data, appendData)  # TODO: chceck params
+        transAppend = {
+            "block_hash": appendData["hash"],
+            "block_num": appendData["block_num"],
+        }
+        for trans in data.transactions:
+            transId = hashlib.sha256(trans.raw_data.SerializeToString()).hexdigest()
+            transAppend["id"] = transId
+            TransParser.Parse(writer, trans, transAppend)
+        return True
 
-    def Parse(self, data, appendData):
 
-        pass
+def _retWrapper(oc):
+    return OriginColumn(name="ret", oc=oc, listHead=True)
+
+
+def _rawDataWrapper(oc):
+    return OriginColumn(name="raw_data", oc=oc)
+
+
+# TODO: oc getattr should be revised if data not get
+class TransParser(BaseParser):
+
+    colIndex = [
+        ColumnIndex(name="id", fromAppend=True),
+        ColumnIndex(name="block_hash", fromAppend=True),
+        ColumnIndex(name="block_num", fromAppend=True),
+        # ret
+        ColumnIndex(
+            name="fee", oc=_retWrapper(OriginColumn(name="fee", colType="int64"))
+        ),
+        ColumnIndex(
+            name="ret", oc=_retWrapper(OriginColumn(name="ret", colType="int"))
+        ),
+        ColumnIndex(
+            name="contract_ret",
+            oc=_retWrapper(OriginColumn(name="contractRet", colType="int")),
+        ),
+        ColumnIndex(
+            name="asset_issue_id",
+            oc=_retWrapper(OriginColumn(name="assetIssueID", colType="bytes")),
+        ),
+        ColumnIndex(
+            name="withdraw_amount",
+            oc=_retWrapper(OriginColumn(name="withdraw_amount", colType="int64")),
+        ),
+        ColumnIndex(
+            name="unfreeze_amount",
+            oc=_retWrapper(OriginColumn(name="unfreeze_amount", colType="int64")),
+        ),
+        ColumnIndex(
+            name="exchange_received_amount",
+            oc=_retWrapper(
+                OriginColumn(name="exchange_received_amount", colType="int64")
+            ),
+        ),
+        ColumnIndex(
+            name="exchange_inject_another_amount",
+            oc=_retWrapper(
+                OriginColumn(name="exchange_inject_another_amount", colType="int64")
+            ),
+        ),
+        ColumnIndex(
+            name="exchange_withdraw_another_amount",
+            oc=_retWrapper(
+                OriginColumn(name="exchange_withdraw_another_amount", colType="int64")
+            ),
+        ),
+        ColumnIndex(
+            name="exchange_id",
+            oc=_retWrapper(OriginColumn(name="exchange_id", colType="int64")),
+        ),
+        ColumnIndex(
+            name="order_id",
+            oc=_retWrapper(OriginColumn(name="order_id", colType="bytes")),
+        ),
+        # raw
+        ColumnIndex(
+            name="ref_block_num",
+            oc=_rawDataWrapper(OriginColumn(name="ref_block_num", colType="int64")),
+        ),
+        ColumnIndex(
+            name="ref_block_hash",
+            oc=_rawDataWrapper(OriginColumn(name="ref_block_hash", colType="bytes")),
+        ),
+        ColumnIndex(
+            name="expiration",
+            oc=_rawDataWrapper(OriginColumn(name="expiration", colType="int64")),
+        ),
+        ColumnIndex(
+            name="trans_time",
+            oc=_rawDataWrapper(OriginColumn(name="timestamp", colType="int64")),
+        ),
+        ColumnIndex(
+            name="fee_limit",
+            oc=_rawDataWrapper(OriginColumn(name="fee_limit", colType="bytes")),
+        ),
+        ColumnIndex(
+            name="scripts",
+            oc=_rawDataWrapper(OriginColumn(name="scripts", colType="int64")),
+        ),
+        ColumnIndex(
+            name="data", oc=_rawDataWrapper(OriginColumn(name="data", colType="int64"))
+        ),
+        # ColumnIndex(name="signature", oc=OriginColumn(name="signature", colType="bytes", castFunc=parseFirst)), TODO: 处理
+        ColumnIndex(
+            name="witness_signature",
+            oc=OriginColumn(
+                name="block_header",
+                oc=OriginColumn(name="witness_signature", colType="bytes"),
+            ),
+        ),
+    ]
+
+    table = "trans"
+
+    def Parse(self, writer, data, appendData):
+        super().Parse(writer, data, appendData)  # TODO: chceck params
+        odAppend = {"trans_id": appendData["id"]}
+
+        if hasattr(data.ret, "orderDetails"):
+            ods = getattr(data.raw_data, "orderDetails")
+            for od in ods:
+                OrderDetailParser.Parse(writer, od, odAppend)
+
+        if hasattr(data.raw_data, "auths"):
+            auths = getattr(data.raw_data, "auths")
+            for auth in auths:
+                AuthParser.Parse(writer, auth, odAppend)
+
+        # TODO: 解析contract
+        odAppend["ret"] = data.ret.contractRet
+        contractParser = contract.getContractParser(
+            writer, data.raw_data.contract[0].type
+        )
+        ret = contractParser.Parse(
+            writer, data.raw_data.contract[0].parameter.value, odAppend
+        )
+        return ret
+
+
+# class
+
+
+class AuthParser(BaseParser):
+
+    colIndex = [
+        ColumnIndex(name="trans_id", fromAppend=True),
+        ColumnIndex(
+            name="account_id",
+            oc=OriginColumn(
+                name="account", oc=OriginColumn(name="name", colType="bytes")
+            ),
+        ),  # TODO： 这个是b2hs还是直接decode
+        ColumnIndex(
+            name="account_name",
+            oc=OriginColumn(
+                name="account", oc=OriginColumn(name="name", castFunc=addressFromBytes)
+            ),
+        ),
+        ColumnIndex(
+            name="permission_name",
+            oc=OriginColumn(name="permission_name", colType="bytes"),
+        ),
+    ]
+
+    table = "trans_market_order_detail"
+
+
+class OrderDetailParser:
+
+    colIndex = [
+        ColumnIndex(name="trans_id", fromAppend=True),
+        ColumnIndex(
+            name="maker_order_id", oc=OriginColumn(name="makerOrderId", colType="bytes")
+        ),
+        ColumnIndex(
+            name="taker_order_id", oc=OriginColumn(name="takerOrderId", colType="bytes")
+        ),
+        ColumnIndex(
+            name="fill_sell_quantity",
+            oc=OriginColumn(name="fillSellQuantity", colType="int64"),
+        ),
+        ColumnIndex(
+            name="fill_buy_quantity",
+            oc=OriginColumn(name="fillBuyQuantity", colType="int64"),
+        ),
+    ]
+
+    table = "trans_market_order_detail"
 
 
 def main():
-    # TODO: check output path is dir,exist and empty
     config, err = ConfigParser.Parse()
     if err is not None:
         logging.error("Failed to get hawq config: {}".format(err))
         exit(-1)
+    transWriter = TransWriter(config)
     try:
         blockDb = plyvel.DB(config.blockDb)
         blockIndexDb = plyvel.DB(config.blockIndexDb)
 
+        count = 0
+        start = datetime.datetime.now()
+
         for i in range(config.start_num, config.end_num):
+            if count % 100 == 0:
+                end = datetime.datetime.now()
+                logging.info(
+                    "已处理 {} 个账户，共耗时 {} 微秒, 平均单个耗时 {} 微秒".format(
+                        count,
+                        (end - start).microseconds,
+                        (end - start).microseconds / count,
+                    )
+                )
+            count += 1
             print(i)
             blockHashBytes = blockIndexDb.get(num2Bytes(i))
             blockBytes = blockDb.get(blockHashBytes)
             blockHash = bytes2HexStr(blockHashBytes)
             block = Tron_pb2.Block()
-            block.ParseFromString(block)
-            appendData = {
-                "block_num": i,
-                "hash": blockHash
-            }
+            block.ParseFromString(blockBytes)
+            appendData = {"block_num": i, "hash": blockHash}
             bp = BlockParser()
-            ret = bp.Parse(block, appendData)
+            ret = bp.Parse(transWriter, block, appendData)
             if not ret:
                 logging.error("Failed to parse block num: {}".format(i))
 
-
-    #     accInsert = CommonParseAndInsert(
-    #         cursor=cur,
-    #         cols=Account.cols,
-    #         subCols=Account.subCols,
-    #         table=Account.table,
-    #     )
-    #     count = 0
-    #     start = datetime.datetime.now()
-    #     for k, v in accountDB:
-    #         if count % 10000 == 0:
-    #             end = datetime.datetime.now()
-    #             logging.info(
-    #                 "已处理 {} 个账户，共耗时 {} 微秒".format(count, (end - start).microseconds)
-    #             )
-    #         acc = Tron_pb2.Account()
-    #         acc.ParseFromString(v)
-    #         ret, sqls = accInsert.Insert(acc)
-    #         # logging.info("sqls: {}".format(sqls))
-    #         if not ret or len(sqls) == 0:
-    #             logging.error("===================")
-    #             logging.error("解析插入失败:\n address hex: {}".format(b2hs(acc.address)))
-    #             logging.error(
-    #                 "解析插入失败:\n address: {}".format(addressFromBytes(acc.address))
-    #             )
-    #             logging.error("===================\n\n\n")
-    #             continue
-    #         cur.execute("".join(sqls))
-    #         conn.commit()
-    #         count += 1
-    # except Exception as e:
-    #     traceback.print_exc()
-    #     logging.error("Failed to run main: {}".format(e))
-    # finally:
-    #     try:
-    #         conn.rollback()
-    #     finally:
-    #         conn.close()
-
-
-def test():
-    config, err = ConfigParser.Parse()
-    if err is not None:
-        logging.error("Failed to get hawq config: {}".format(err))
-        exit(-1)
-    conn = getConn(config)
-    if not conn:
-        logging.error("Failed to connect hawq : {}".format(err))
-        exit(-1)
-    try:
-        cur = conn.cursor()
-        accountDB = plyvel.DB("/data2/20210425/output-directory/database/account")
-        # accountIt = accountDB.iterator()
-        accInsert = CommonParseAndInsert(
-            cursor=cur,
-            cols=Account.cols,
-            subCols=Account.subCols,
-            table=Account.table,
+        end = datetime.datetime.now()
+        logging.info(
+            "共处理 {} 个账户，共耗时 {} 微秒, 平均单个耗时 {} 微秒".format(
+                count,
+                (end - start).microseconds,
+                (end - start).microseconds / count,
+            )
         )
-        v = accountDB.get(bytes.fromhex("4100001f9ac7032955f71612dea92dc850ff3fa087"))
-        acc = Tron_pb2.Account()
-        acc.ParseFromString(v)
-        ret, sqls = accInsert.Insert(acc)
-        # logging.info("sqls: {}".format(sqls))
-        if not ret or len(sqls) == 0:
-            logging.error("===================")
-            logging.error("解析插入失败:\n address hex: {}".format(b2hs(acc.address)))
-            logging.error("解析插入失败:\n address: {}".format(addressFromBytes(acc.address)))
-            logging.error("===================\n\n\n")
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
-        logging.error("Failed to run main: {}".format(e))
     finally:
-        try:
-            conn.rollback()
-        finally:
-            conn.close()
+        transWriter.close()
 
+
+if "__main__" == __name__:
+    main()
 
 # 1. 获取参数: output-directory 数据的绝对地址  blockDB和blockIndexDB拼出来
 # 2. 解析hawq配置，以及[start block num, end block num]  0-29617377
@@ -707,8 +845,4 @@ def test():
 # 4. 如何控制或知道哪些block是无用的，或者有没有无用的block
 # 5. 数据写入多个不同类文件的一致性，如果出错需要一致回滚，或者通过记录出错的trans_id来实现后期一致性
 # 6. 最终要检验trans_id的唯一性
-
-
-if "__main__" == __name__:
-    main()
-    # test()
+# 7. account中的account_name可能不能使用b2hs,需要decode支持中文的

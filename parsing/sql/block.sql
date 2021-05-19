@@ -6,7 +6,8 @@
 DROP TABLE IF EXISTS
 block,
 trans,
-trans_order_detail,
+trans_market_order_detail,
+trans_auths,
 account_create_contract,
 transfer_contract,
 transfer_asset_contract,
@@ -56,6 +57,7 @@ CREATE TABLE block(
 CREATE TABLE trans(
     id text,
     block_hash text,
+    block_num bigint,
     -- ret START--
     fee bigint,
     ret int,
@@ -76,14 +78,26 @@ CREATE TABLE trans(
     expiration bigint,
     trans_time bigint,
     fee_limit bigint,
-    signature text
+    scripts text,
+    data text,
     -- raw END
-
+    signature text
 ) format 'csv';
-CREATE TABLE trans_order_detail(
+CREATE TABLE trans_market_order_detail(
     trans_id text,
-    detail text
+    makerOrderId text,
+    taker_order_id text,
+    fill_sell_quantity bigint,
+    fill_buy_quantity bigint
 ) format 'csv';
+
+CREATE TABLE trans_auths(
+    trans_id text,
+    account_address text,
+    account_name text,
+    permission_name text
+) format 'csv';
+
 CREATE TABLE account_create_contract(
     trans_id text,
     ret int,
@@ -121,27 +135,37 @@ CREATE TABLE transfer_asset_contract(
 CREATE TABLE vote_asset_contract(
     trans_id text,
     ret int,
-    provider text,
-    name text,
-    permission_id int,
-    -- more
-    owner_address text,
-    vote_address text, --csv格式存储多个vote_address
-    support boolean,
-    count int
+    bytes_hex text
 ) format 'csv';
 CREATE TABLE vote_witness_contract(
     trans_id text,
     ret int,
-    provider text,
-    name text,
-    permission_id int,
-    -- more
-    owner_address text,
-    support boolean,
-    vote_address text,
-    vote_count bigint
+    bytes_hex text
 ) format 'csv';
+-- CREATE TABLE vote_asset_contract(
+--     trans_id text,
+--     ret int,
+--     provider text,
+--     name text,
+--     permission_id int,
+--     -- more
+--     owner_address text,
+--     vote_address text, --csv格式存储多个vote_address
+--     support boolean,
+--     count int
+-- ) format 'csv';
+-- CREATE TABLE vote_witness_contract(
+--     trans_id text,
+--     ret int,
+--     provider text,
+--     name text,
+--     permission_id int,
+--     -- more
+--     owner_address text,
+--     support boolean,
+--     vote_address text,
+--     vote_count bigint
+-- ) format 'csv';
 CREATE TABLE witness_create_contract(
     trans_id text,
     ret int,
@@ -448,3 +472,27 @@ CREATE TABLE shielded_transfer_contract(
     -- to_amount bigint
 ) format 'csv';
 
+CREATE TABLE market_sell_asset_contract(
+    trans_id text,
+    ret int,
+    provider text,
+    name text,
+    permission_id int,
+    -- more
+    owner_address text,
+    sell_token_id text,
+    sell_token_quantity bigint,
+    buy_token_id text,
+    buy_token_quantity bigint
+) format 'csv';
+
+CREATE TABLE market_cancel_order_contract(
+    trans_id text,
+    ret int,
+    provider text,
+    name text,
+    permission_id int,
+    -- more
+    owner_address text,
+    order_id text
+) format 'csv';

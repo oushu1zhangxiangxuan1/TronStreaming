@@ -1,6 +1,6 @@
-BlockNum: 29960000
-Ceiling: -1
-OutputDir: /data2/stream_data/2968/streaming/data
+BlockNum: 29680000
+Ceiling:  29699999
+OutputDir: /data2/stream_data/29680000_29699999/streaming/data
 Interval: 5
 
 # block_id: get trans from block_id to now，如果未指定，从当前目录读block.id
