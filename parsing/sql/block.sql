@@ -4,6 +4,7 @@
 -- 3. 
 
 DROP TABLE IF EXISTS
+-- TRUNCATE TABLE
 block,
 trans,
 trans_market_order_detail,
@@ -46,9 +47,9 @@ CREATE TABLE block(
     hash text,
     parent_hash text,
     create_time bigint,
-    version text,
+    version int,
     witness_address text,
-    witness_id text,
+    witness_id bigint,
     tx_count int,
     tx_trie_root text,
     witness_signature text,
@@ -61,6 +62,7 @@ CREATE TABLE trans(
     -- ret START--
     fee bigint,
     ret int,
+    contract_type int,
     contract_ret int,
     asset_issue_id text,
     withdraw_amount bigint,
@@ -79,7 +81,9 @@ CREATE TABLE trans(
     trans_time bigint,
     fee_limit bigint,
     scripts text,
+    scripts_decode text,
     data text,
+    data_decode text,
     -- raw END
     signature text
 ) format 'csv';

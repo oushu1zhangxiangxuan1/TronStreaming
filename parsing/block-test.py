@@ -91,10 +91,19 @@ c2.ParseFromString(vs.transactions[2].raw_data.contract[0].parameter.value)
 
 #
 i = blockIndexDB.get(num2Bytes(29617377))
+i = blockIndexDB.get(num2Bytes(0))
+i = blockIndexDB.get(num2Bytes(2142))
 # 0000000001c3ece19dbc80547e9ede5d4613fd4ea5f90e154afef6f0388ac3f0
 blk = blockDB.get(i)
 blkIns = Tron_pb2.Block()
 blkIns.ParseFromString(blk)
+import core.contract.balance_contract_pb2 as bc
+
+# import core.contract.balance_contract_pb2.FreezeBalanceContract
+
+c = bc.FreezeBalanceContract()
+c.ParseFromString(blkIns.transactions[0].raw_data.contract[0].parameter.value)
+
 tb = blkIns.transactions[0].raw_data.SerializeToString()
 import hashlib
 
