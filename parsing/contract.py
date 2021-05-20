@@ -21,6 +21,7 @@ from parsing.block import (
     OriginColumn,
     addressFromBytes,
     bytesRawDecode,
+    bytes2HexStr,
 )
 import logging
 
@@ -146,9 +147,6 @@ contractTableMap = {
 
 
 class ContractBaseParser(BaseParser):
-    def __init__(self):
-        super().__init__()
-
     colIndex = [
         ColumnIndex(name="trans_id", fromAppend=True),
         ColumnIndex(name="ret", fromAppend=True),
@@ -166,21 +164,24 @@ class ContractBaseParser(BaseParser):
         super().Parse(writer, self.contract, appendData)
 
 
-# contractColumnBase = [
-
-# ]
-
-
 class AccountCreateContractParser(ContractBaseParser):
     colIndex = ContractBaseParser.colIndex + [
+        # owner_address: "Justin_Sun"
+        # account_address: "AFv\330\036\026`K\330\341\334\252\330T\204&\231\365\272\002~"
         ColumnIndex(
             name="owner_address",
-            oc=OriginColumn(name="owner_address", castFunc=addressFromBytes),
+            oc=OriginColumn(name="owner_address", castFunc=bytesRawDecode),
         ),
         ColumnIndex(
             name="account_address",
             oc=OriginColumn(name="account_address", castFunc=addressFromBytes),
         ),
+        # TO REVIEW:
+        # >>> c.account_type
+        # Traceback (most recent call last):
+        # File "<stdin>", line 1, in <module>
+        # AttributeError: account_type
+        # >>> c.account_type
         ColumnIndex(
             name="account_type",
             oc=OriginColumn(name="account_type", colType="int"),
@@ -289,6 +290,9 @@ class WitnessCreateContractParser(ContractBaseParser):
 
 # TODO: 子表测试
 class AssetIssueContractParser(ContractBaseParser):
+    def __init__(self):
+        self.frozenSupplyParser = FrozenSupplyParser()
+
     colIndex = ContractBaseParser.colIndex + [
         ColumnIndex(
             name="id",
@@ -332,7 +336,7 @@ class AssetIssueContractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="order_",
-            oc=OriginColumn(name="owner_address", colType="int64"),
+            oc=OriginColumn(name="order", colType="int64"),
         ),
         ColumnIndex(
             name="vote_score",
@@ -368,11 +372,14 @@ class AssetIssueContractParser(ContractBaseParser):
     def Parse(self, writer, data, appendData):
         super().Parse(writer, data, appendData)  # TODO: super 的table是不是空的？
         frozenAppend = {"trans_id": appendData["trans_id"]}
-        for f in data.frozen_supply:
-            FrozenSupplyParser.Parse(writer, data, frozenAppend)
+        for f in self.contract.frozen_supply:
+            self.frozenSupplyParser.Parse(writer, data, frozenAppend)
 
 
-class FrozenSupplyParser(BaseParser):
+class FrozenSupplyParser(ContractBaseParser):
+    def __init__(self):
+        self.contract = asset_issue_contract_pb2.AssetIssueContract()
+
     table = "asset_issue_contract_frozen_supply"
     colIndex = [
         ColumnIndex(
@@ -838,27 +845,35 @@ def getContract(contractType):
 
 
 def getContractParser(contractType):
-    if contractTableMap[contractType] in bytes_hex_contracts:
-        return ContractRawParser(contractTypeMap[contractType])
     return contractParserMap[contractType]
 
 
 # TODO: **kwargs
 class ContractRawParser(BaseParser):
+    colIndex = [
+        ColumnIndex(name="trans_id", fromAppend=True),
+        ColumnIndex(name="ret", fromAppend=True),
+        ColumnIndex(
+            name="bytes_hex",
+            oc=OriginColumn(name="owner_address", castFunc=addressFromBytes),
+        ),
+    ]
+
     def __init__(self, table):
         self.table = table
 
     def Parse(self, writer, data, appendData):
         if len(self.colIndex) == 0 or self.table is None:
             logging.error("请勿直接调用抽象类方法，请实例化类并未对象变量赋值")
+            # raise
             return False
 
         vals = []
         for col in self.colIndex:
             if col.FromAppend:
                 vals.append(appendData[col.name])
-        vals.append(data.decode())  # TODO:how to decode
-        self.Write(vals)
+        vals.append(bytes2HexStr(data))  # TODO:how to decode
+        self.Write(writer, vals)
 
 
 bytes_hex_contracts = [
