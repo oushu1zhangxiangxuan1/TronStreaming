@@ -30,6 +30,28 @@ blockIndexDB = plyvel.DB("/data2/20210425/output-directory/database/block-index"
 blockDB = plyvel.DB("/data2/20210425/output-directory/database/block")
 
 
+#
+# i = blockIndexDB.get(num2Bytes(29617377))
+# i = blockIndexDB.get(num2Bytes(0))
+# i = blockIndexDB.get(num2Bytes(2142))
+i = blockIndexDB.get(num2Bytes(3188))
+# 0000000001c3ece19dbc80547e9ede5d4613fd4ea5f90e154afef6f0388ac3f0
+blk = blockDB.get(i)
+blkIns = Tron_pb2.Block()
+blkIns.ParseFromString(blk)
+
+import core.contract.asset_issue_contract_pb2 as aic
+
+c = aic.AssetIssueContract()
+c.ParseFromString(blkIns.transactions[0].raw_data.contract[0].parameter.value)
+
+# import core.contract.balance_contract_pb2.FreezeBalanceContract
+import core.contract.balance_contract_pb2 as bc
+
+c = bc.FreezeBalanceContract()
+c.ParseFromString(blkIns.transactions[0].raw_data.contract[0].parameter.value)
+
+
 blockIndexIT = blockIndexDB.iterator()
 
 k, v = next(blockIndexIT)

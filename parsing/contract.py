@@ -15,7 +15,13 @@ import parsing.core.contract.smart_contract_pb2 as smart_contract_pb2
 import parsing.core.contract.storage_contract_pb2 as storage_contract_pb2
 import parsing.core.contract.vote_asset_contract_pb2 as vote_asset_contract_pb2
 import parsing.core.contract.witness_contract_pb2 as witness_contract_pb2
-from parsing.block import BaseParser, ColumnIndex, OriginColumn, addressFromBytes
+from parsing.block import (
+    BaseParser,
+    ColumnIndex,
+    OriginColumn,
+    addressFromBytes,
+    bytesRawDecode,
+)
 import logging
 
 
@@ -286,7 +292,7 @@ class AssetIssueContractParser(ContractBaseParser):
     colIndex = ContractBaseParser.colIndex + [
         ColumnIndex(
             name="id",
-            oc=OriginColumn(name="id", colType="bytes"),  # TODO: b2hs?
+            oc=OriginColumn(name="id", colType="string"),
         ),
         ColumnIndex(
             name="owner_address",
@@ -294,11 +300,11 @@ class AssetIssueContractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="name_",
-            oc=OriginColumn(name="name", colType="bytes"),  # TODO: b2hs?
+            oc=OriginColumn(name="name", castFunc=bytesRawDecode),
         ),
         ColumnIndex(
             name="abbr",
-            oc=OriginColumn(name="abbr"),  # TODO: b2hs?
+            oc=OriginColumn(name="abbr", castFunc=bytesRawDecode),
         ),
         ColumnIndex(
             name="total_supply",
@@ -334,11 +340,11 @@ class AssetIssueContractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="description",
-            oc=OriginColumn(name="description"),  # TODO: b2hs?
+            oc=OriginColumn(name="description", castFunc=bytesRawDecode),
         ),
         ColumnIndex(
             name="url",
-            oc=OriginColumn(name="url"),  # TODO: b2hs?
+            oc=OriginColumn(name="url", castFunc=bytesRawDecode),
         ),
         ColumnIndex(
             name="free_asset_net_limit",

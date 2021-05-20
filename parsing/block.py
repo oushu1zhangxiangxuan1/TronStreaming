@@ -640,9 +640,9 @@ def main():
                     logging.error("Failed to parse block num: {}".format(i))
                 count += 1
             except Exception:
-                logging.error("Failed to parse block num: {}".format([i]))
+                logging.error("Failed to parse block num: {}".format(i))
                 traceback.print_exc()
-                transWriter.write("error_block_num", i)
+                transWriter.write("error_block_num", [i])
             # except Exception as e:
             #     logging.error("Failed to parse block num: {}".format(i))
             #     traceback.print_exc()
