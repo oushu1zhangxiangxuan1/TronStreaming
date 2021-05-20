@@ -57,6 +57,13 @@ def bytesRawDecode(data):
     return data.decode()
 
 
+def ownerAddressDecode(data):
+    try:
+        return bytesRawDecode(data)
+    except Exception:
+        return addressFromBytes(data)
+
+
 class TransWriter:
 
     init = False
