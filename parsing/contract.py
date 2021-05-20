@@ -160,6 +160,9 @@ class ContractBaseParser(BaseParser):
     ]
 
     def Parse(self, writer, data, appendData):
+        # if self.table == "account_create_contract":
+        #     print("account_create_contract: ", data)
+        #     print("account_create_contract append data: ", appendData)
         self.contract.ParseFromString(data)
         super().Parse(writer, self.contract, appendData)
 
@@ -444,7 +447,7 @@ class account_update_contractParser(ContractBaseParser):
             oc=OriginColumn(name="account_name"),  # TODO: b2hs?
         ),
     ]
-    table = "account_create_contract"
+    table = "account_update_contract"
 
 
 class freeze_balance_contractParser(ContractBaseParser):

@@ -35,7 +35,11 @@ blockDB = plyvel.DB("/data2/20210425/output-directory/database/block")
 # i = blockIndexDB.get(num2Bytes(0))
 # i = blockIndexDB.get(num2Bytes(2142))
 # i = blockIndexDB.get(num2Bytes(3188))
-i = blockIndexDB.get(num2Bytes(1990))
+# i = blockIndexDB.get(num2Bytes(1990))
+# i = blockIndexDB.get(
+#     num2Bytes(463866)
+# )  # asset_issue_contract 'utf-8' codec can't decode byte 0xa0 in position 6: invalid start byte   description
+i = blockIndexDB.get(num2Bytes(6436))
 
 # 0000000001c3ece19dbc80547e9ede5d4613fd4ea5f90e154afef6f0388ac3f0
 blk = blockDB.get(i)

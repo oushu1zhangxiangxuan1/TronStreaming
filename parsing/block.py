@@ -52,6 +52,8 @@ def addressFromBytes(addr):
 
 
 def bytesRawDecode(data):
+    if b"\xa0" in data:
+        return data.decode("latin1")
     return data.decode()
 
 
@@ -301,10 +303,14 @@ class BaseParser:
 
         vals = []
         for col in self.colIndex:
+            # print("col: ", col.name)
             if col.FromAppend:
                 vals.append(appendData[col.name])
             else:
                 vals.append(col.oc.getattr(data))
+            # print("vals: ", vals)
+            # print("vals len: ", len(vals))
+            # print()
         self.Write(writer, vals)
         return True
 
