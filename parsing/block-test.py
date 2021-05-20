@@ -50,6 +50,25 @@ blk = blockDB.get(i)
 blkIns = Tron_pb2.Block()
 blkIns.ParseFromString(blk)
 
+blockIndexIT = blockIndexDB.iterator()
+blockIndexIT = blockIndexDB.iterator(reverse=True)
+blkIns = None
+while True:
+    k, v = next(blockIndexIT)
+    blk = blockDB.get(v)
+    blkIns = Tron_pb2.Block()
+    blkIns.ParseFromString(blk)
+    j = False
+    for i, t in enumerate(blkIns.transactions):
+        if len(t.ret) > 0:
+            print("block num: ", b2l(k))
+            print("trans index: ", i)
+            print(t)
+            j = True
+            break
+    if j:
+        break
+
 import core.contract.account_contract_pb2 as account_contract_pb2
 
 c = account_contract_pb2.AccountCreateContract()

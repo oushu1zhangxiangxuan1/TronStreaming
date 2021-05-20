@@ -2,6 +2,7 @@
 import env
 from parsing import Tron_pb2
 from typing import Tuple
+import chardet
 
 import json
 import plyvel
@@ -52,8 +53,6 @@ def addressFromBytes(addr):
 
 
 def bytesRawDecode(data):
-    if b"\xa0" in data:
-        return data.decode("latin1")
     return data.decode()
 
 
@@ -62,6 +61,16 @@ def ownerAddressDecode(data):
         return bytesRawDecode(data)
     except Exception:
         return addressFromBytes(data)
+
+
+def autoDecode(data):
+    encs = chardet.detect(data)
+    try:
+        return data.decode(encs["encoding"])
+    except Exception:
+        logging.error("Failed to decode: {}".format(data))
+        raise  # TODO: remove raise
+        return data
 
 
 class TransWriter:
@@ -310,14 +319,15 @@ class BaseParser:
 
         vals = []
         for col in self.colIndex:
-            # print("col: ", col.name)
             if col.FromAppend:
                 vals.append(appendData[col.name])
             else:
                 vals.append(col.oc.getattr(data))
-            # print("vals: ", vals)
-            # print("vals len: ", len(vals))
-            # print()
+            # if col.name == "tx_count":
+            #     print("col: ", col.name)
+            #     print("vals: ", vals)
+            #     print("vals len: ", len(vals))
+            #     print()
         self.Write(writer, vals)
         return True
 
@@ -546,9 +556,14 @@ class TransParser(BaseParser):
 
         # 解析contract
         # logging.info("trans data: {}".format(data))
-        odAppend["ret"] = ""
+        odAppend["ret"] = None
+        # print("data: ", data)
         if len(data.ret) > 0:
+            # print("data.ret len: ", len(data.ret))
+            # print("data.ret[0].contractRet: ", len(data.ret[0].contractRet))
             odAppend["ret"] = data.ret[0].contractRet
+        # print("odAppend: ", odAppend)
+
         contractParser = contract.getContractParser(data.raw_data.contract[0].type)
         try:
             ret = contractParser.Parse(
@@ -684,9 +699,13 @@ def main():
         )
         logging.info(
             "处理 29617377 个区块，预计用时 {} 小时".format(
-                (229617377 / (count - 1)) * (end - start).microseconds / 1000000 / 3600
+                ((229617377 / (count - 1)) * (end - start).microseconds)
+                / 1000000
+                / 3600
             )
         )
+        logging.info("开始时间: {}".format(start.strftime("%Y-%m-%d %H:%M:%S")))
+        logging.info("结束时间: {}".format(end.strftime("%Y-%m-%d %H:%M:%S")))
 
 
 if "__main__" == __name__:

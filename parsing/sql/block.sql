@@ -5,6 +5,7 @@
 
 DROP TABLE IF EXISTS
 -- TRUNCATE TABLE
+error_block_num,
 block,
 trans,
 trans_market_order_detail,
@@ -42,6 +43,10 @@ clear_abi_contract,
 update_brokerage_contract,
 shielded_transfer_contract;
 
+CREATE TABLE error_block_num(
+    block_num bigint
+) format 'csv';
+
 CREATE TABLE block(
     block_num bigint,
     hash text,
@@ -61,9 +66,9 @@ CREATE TABLE trans(
     block_num bigint,
     -- ret START--
     fee bigint,
-    ret int,
+    ret int, -- NULL means SUCCESS
     contract_type int,
-    contract_ret int,
+    contract_ret int, -- NULL means SUCCESS
     asset_issue_id text,
     withdraw_amount bigint,
     unfreeze_amount bigint,

@@ -22,6 +22,8 @@ from parsing.block import (
     addressFromBytes,
     bytesRawDecode,
     bytes2HexStr,
+    ownerAddressDecode,
+    autoDecode,
 )
 import logging
 
@@ -173,7 +175,7 @@ class AccountCreateContractParser(ContractBaseParser):
         # account_address: "AFv\330\036\026`K\330\341\334\252\330T\204&\231\365\272\002~"
         ColumnIndex(
             name="owner_address",
-            oc=OriginColumn(name="owner_address", castFunc=bytesRawDecode),
+            oc=OriginColumn(name="owner_address", castFunc=ownerAddressDecode),
         ),
         ColumnIndex(
             name="account_address",
@@ -347,7 +349,7 @@ class AssetIssueContractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="description",
-            oc=OriginColumn(name="description", castFunc=bytesRawDecode),
+            oc=OriginColumn(name="description", castFunc=autoDecode),
         ),
         ColumnIndex(
             name="url",
