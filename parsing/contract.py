@@ -116,7 +116,7 @@ contractTableMap = {
     ContractType.VoteWitnessContract.value: "vote_witness_contract",
     ContractType.WitnessCreateContract.value: "witness_create_contract",
     ContractType.AssetIssueContract.value: "asset_issue_contract",
-    ContractType.WitnessUpdateContract.value: "witness_update_contract",  # TODO: has sub table
+    ContractType.WitnessUpdateContract.value: "witness_update_contract",
     ContractType.ParticipateAssetIssueContract.value: "participate_asset_issue_contract",
     ContractType.AccountUpdateContract.value: "account_update_contract",
     ContractType.FreezeBalanceContract.value: "freeze_balance_contract",
@@ -151,9 +151,13 @@ class ContractBaseParser(BaseParser):
     colIndex = [
         ColumnIndex(name="trans_id", fromAppend=True),
         ColumnIndex(name="ret", fromAppend=True),
-        ColumnIndex(name="provider", oc=OriginColumn(name="provider", colType="bytes")),
         ColumnIndex(
-            name="name", oc=OriginColumn(name="ContractName", colType="bytes")
+            name="provider",
+            oc=OriginColumn(name="provider", colType="bytes", castFunc=autoDecode),
+        ),
+        ColumnIndex(
+            name="name",
+            oc=OriginColumn(name="ContractName", colType="bytes", castFunc=autoDecode),
         ),  # TODO: not b2hs?
         ColumnIndex(
             name="permission_id", oc=OriginColumn(name="permission_id", colType="int32")
@@ -216,7 +220,7 @@ class TransferAssetContractParser(ContractBaseParser):
     colIndex = ContractBaseParser.colIndex + [
         ColumnIndex(
             name="asset_name",
-            oc=OriginColumn(name="asset_name", colType="bytes"),  # TODO: decode or b2hs
+            oc=OriginColumn(name="asset_name", castFunc=autoDecode),
         ),
         ColumnIndex(
             name="owner_address",
@@ -286,13 +290,12 @@ class WitnessCreateContractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="url",
-            oc=OriginColumn(name="url", colType="bytes"),  # TODO: b2hs or decode
+            oc=OriginColumn(name="url", castFunc=autoDecode),
         ),
     ]
     table = "witness_create_contract"
 
 
-# TODO: 子表测试
 class AssetIssueContractParser(ContractBaseParser):
     def __init__(self):
         self.frozenSupplyParser = FrozenSupplyParser()
@@ -414,7 +417,7 @@ class witness_update_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="update_url",
-            oc=OriginColumn(name="update_url"),  # TODO: b2hs or decode
+            oc=OriginColumn(name="update_url", castFunc=autoDecode),
         ),
     ]
     table = "witness_update_contract"
@@ -432,7 +435,7 @@ class participate_asset_issue_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="asset_name",
-            oc=OriginColumn(name="asset_name"),  # TODO: b2hs or decode
+            oc=OriginColumn(name="asset_name", castFunc=autoDecode),
         ),
         ColumnIndex(
             name="amount",
@@ -450,7 +453,7 @@ class account_update_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="account_name",
-            oc=OriginColumn(name="account_name"),  # TODO: b2hs?
+            oc=OriginColumn(name="account_name", castFunc=autoDecode),
         ),
     ]
     table = "account_update_contract"
@@ -516,14 +519,6 @@ class unfreeze_asset_contractParser(ContractBaseParser):
             name="owner_address",
             oc=OriginColumn(name="owner_address", castFunc=addressFromBytes),
         ),
-        ColumnIndex(
-            name="account_address",
-            oc=OriginColumn(name="account_address", castFunc=addressFromBytes),
-        ),
-        ColumnIndex(
-            name="account_type",
-            oc=OriginColumn(name="account_type", colType="int"),
-        ),
     ]
     table = "unfreeze_asset_contract"
 
@@ -536,11 +531,11 @@ class update_asset_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="description",
-            oc=OriginColumn(name="description"),  # TODO: b2hs or decode
+            oc=OriginColumn(name="description", castFunc=autoDecode),
         ),
         ColumnIndex(
             name="url",
-            oc=OriginColumn(name="url"),  # TODO: b2hs or decode
+            oc=OriginColumn(name="url", castFunc=autoDecode),
         ),
         ColumnIndex(
             name="new_limit",
@@ -675,7 +670,7 @@ class exchange_create_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="first_token_id",
-            oc=OriginColumn(name="first_token_id"),  # TODO:type
+            oc=OriginColumn(name="first_token_id", castFunc=autoDecode),  # TODO:type
         ),
         ColumnIndex(
             name="first_token_balance",
@@ -683,7 +678,7 @@ class exchange_create_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="second_token_id",
-            oc=OriginColumn(name="second_token_id"),  # TODO:type
+            oc=OriginColumn(name="second_token_id", castFunc=autoDecode),  # TODO:type
         ),
         ColumnIndex(
             name="second_token_balance",
@@ -705,7 +700,7 @@ class exchange_inject_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="token_id",
-            oc=OriginColumn(name="token_id"),  # TODO:type
+            oc=OriginColumn(name="token_id", castFunc=autoDecode),  # TODO:type
         ),
         ColumnIndex(
             name="quant",
@@ -727,7 +722,7 @@ class exchange_withdraw_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="token_id",
-            oc=OriginColumn(name="token_id"),  # TODO:type
+            oc=OriginColumn(name="token_id", castFunc=autoDecode),  # TODO:type
         ),
         ColumnIndex(
             name="quant",
@@ -749,7 +744,7 @@ class exchange_transaction_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="token_id",
-            oc=OriginColumn(name="token_id"),  # TODO:type
+            oc=OriginColumn(name="token_id", castFunc=autoDecode),
         ),
         ColumnIndex(
             name="quant",
@@ -817,7 +812,7 @@ class market_sell_asset_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="sell_token_id",
-            oc=OriginColumn(name="sell_token_id"),  # TODO:type
+            oc=OriginColumn(name="sell_token_id", castFunc=autoDecode),  # TODO:type
         ),
         ColumnIndex(
             name="sell_token_quantity",
@@ -825,7 +820,7 @@ class market_sell_asset_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="buy_token_id",
-            oc=OriginColumn(name="buy_token_id"),  # TODO:type
+            oc=OriginColumn(name="buy_token_id", castFunc=autoDecode),  # TODO:type
         ),
         ColumnIndex(
             name="buy_token_quantity",
@@ -843,7 +838,7 @@ class market_cancel_order_contractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="order_id",
-            oc=OriginColumn(name="order_id"),  # TODO:type
+            oc=OriginColumn(name="order_id", castFunc=autoDecode),  # TODO:type
         ),
     ]
     table = "market_cancel_order_contract"
@@ -857,7 +852,6 @@ def getContractParser(contractType):
     return contractParserMap[contractType]
 
 
-# TODO: **kwargs
 class ContractRawParser(BaseParser):
     colIndex = [
         ColumnIndex(name="trans_id", fromAppend=True),
@@ -902,8 +896,8 @@ contractParserMap = {
     ContractType.VoteAssetContract.value: ContractRawParser("vote_asset_contract"),
     ContractType.VoteWitnessContract.value: ContractRawParser("vote_witness_contract"),
     ContractType.WitnessCreateContract.value: WitnessCreateContractParser(),
-    ContractType.AssetIssueContract.value: AssetIssueContractParser(),  # TODO: has sub table
-    ContractType.WitnessUpdateContract.value: witness_update_contractParser(),  # TODO: has sub table
+    ContractType.AssetIssueContract.value: AssetIssueContractParser(),
+    ContractType.WitnessUpdateContract.value: witness_update_contractParser(),
     ContractType.ParticipateAssetIssueContract.value: participate_asset_issue_contractParser(),
     ContractType.AccountUpdateContract.value: account_update_contractParser(),
     ContractType.FreezeBalanceContract.value: freeze_balance_contractParser(),

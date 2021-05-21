@@ -7,6 +7,9 @@ import binascii
 import tronapi
 import time
 
+# import core
+import hashlib
+
 b2hs = binascii.hexlify
 
 # (29617377).to_bytes(8, 'big')
@@ -40,17 +43,62 @@ blockDB = plyvel.DB("/data2/20210425/output-directory/database/block")
 #     num2Bytes(463866)
 # )  # asset_issue_contract 'utf-8' codec can't decode byte 0xa0 in position 6: invalid start byte   description
 # i = blockIndexDB.get(num2Bytes(6436))
-i = blockIndexDB.get(
-    num2Bytes(56186)
-)  # owner_address decode err  account_create_contract  d7c755fa357067413d653ed4878b94490266f80de4c959f3c60138e2961523e0
-i = blockIndexDB.get(num2Bytes(1723935))
+# i = blockIndexDB.get(
+#     num2Bytes(56186)
+# )  # owner_address decode err  account_create_contract  d7c755fa357067413d653ed4878b94490266f80de4c959f3c60138e2961523e0
+# i = blockIndexDB.get(num2Bytes(1723935))
 # 'charmap' codec can't decode byte 0x8d in position 48: character maps to <undefined>
 # asset_issue_contract description
+
+# i = blockIndexDB.get(num2Bytes(29000000))
+# check asset name
+
+
+# i = blockIndexDB.get(num2Bytes(29205634))
+# check trigger_smart_contract data
+
+# i = blockIndexDB.get(num2Bytes(29062776))
+# check trigger_smart_contract data
+# 1677540f2bbb3395bc8ae775952895794cb53a399a016ff41185679c532f4c12
+
+
+i = blockIndexDB.get(num2Bytes(29024957))
+# check trans scripts
+# 92b75356ffb6d660af4c37e842dbd0aa58d7accdc858b0a9c6b647dc9be36014
 
 # 0000000001c3ece19dbc80547e9ede5d4613fd4ea5f90e154afef6f0388ac3f0
 blk = blockDB.get(i)
 blkIns = Tron_pb2.Block()
 blkIns.ParseFromString(blk)
+
+
+tid = "92b75356ffb6d660af4c37e842dbd0aa58d7accdc858b0a9c6b647dc9be36014"
+t = None
+
+for i in blkIns.transactions:
+    if tid == hashlib.sha256(i.raw_data.SerializeToString()).hexdigest():
+        t = i
+        break
+import core.contract.exchange_contract_pb2 as exchange_contract_pb2
+
+c = exchange_contract_pb2.ExchangeTransactionContract()
+c.ParseFromString(t.raw_data.contract[0].parameter.value)
+
+
+def getTrans(tid):
+    t = None
+    for i in blkIns.transactions:
+        if tid == hashlib.sha256(i.raw_data.SerializeToString()).hexdigest():
+            t = i
+            break
+    print(t)
+    return t
+
+
+import core.contract.smart_contract_pb2 as smart_contract_pb2
+
+tsc = smart_contract_pb2.TriggerSmartContract()
+tsc.ParseFromString(t.raw_data.contract[0].parameter.value)
 
 blockIndexIT = blockIndexDB.iterator()
 blockIndexIT = blockIndexDB.iterator(reverse=True)

@@ -189,6 +189,10 @@ class TransWriter:
         for _, w in self.FileHandler.items():
             w.flush()
 
+    def refresh(self):
+        self.flush()
+        self.close()
+
 
 def CheckPathAccess(path: str) -> Tuple[bool, str]:
     if not os.path.isdir(path):
@@ -264,7 +268,7 @@ class OriginColumn:
         castFunc=None,
         oc=None,
         listHead=False,
-        default="",
+        default=None,
     ):
         self.oc = oc
         self.name = name
@@ -415,7 +419,7 @@ class BlockParser(BaseParser):
     table = "block"
 
     def Parse(self, writer, data, appendData):
-        super().Parse(writer, data, appendData)  # TODO: chceck params
+        super().Parse(writer, data, appendData)
         transAppend = {
             "block_hash": appendData["hash"],
             "block_num": appendData["block_num"],
@@ -435,7 +439,6 @@ def _rawDataWrapper(oc):
     return OriginColumn(name="raw_data", oc=oc)
 
 
-# TODO: oc getattr should be revised if data not get
 class TransParser(BaseParser):
 
     colIndex = [
@@ -505,9 +508,8 @@ class TransParser(BaseParser):
         ),
         ColumnIndex(
             name="order_id",
-            oc=_retWrapper(OriginColumn(name="order_id", colType="bytes")),
-        ),  # TODO: deocode or hex
-        # raw
+            oc=_retWrapper(OriginColumn(name="order_id", castFunc=autoDecode)),
+        ),
         ColumnIndex(
             name="ref_block_num",
             oc=_rawDataWrapper(OriginColumn(name="ref_block_num", colType="int64")),
@@ -530,28 +532,18 @@ class TransParser(BaseParser):
         ),
         ColumnIndex(
             name="scripts",
-            oc=_rawDataWrapper(
-                OriginColumn(name="scripts", colType="bytes")
-            ),  # TODO: deocode or hex
-        ),
-        ColumnIndex(
-            name="scripts_decode",
             oc=_rawDataWrapper(OriginColumn(name="scripts", castFunc=autoDecode)),
         ),
         ColumnIndex(
             name="data",
             oc=_rawDataWrapper(OriginColumn(name="data", castFunc=autoDecode)),
-        ),  # TODO: remove one
-        ColumnIndex(
-            name="data",
-            oc=_rawDataWrapper(OriginColumn(name="data", castFunc=autoDecode)),
         ),
-        # ColumnIndex(name="signature", oc=OriginColumn(name="signature", colType="bytes", castFunc=parseFirst)), TODO: 处理
         ColumnIndex(
-            name="witness_signature",
+            name="signature",
             oc=OriginColumn(
-                name="block_header",
-                oc=OriginColumn(name="witness_signature", colType="bytes"),
+                name="signature",
+                listHead=True,
+                oc=OriginColumn(name="signature", colType="bytes"),
             ),
         ),
     ]
@@ -559,7 +551,7 @@ class TransParser(BaseParser):
     table = "trans"
 
     def Parse(self, writer, data, appendData):
-        super().Parse(writer, data, appendData)  # TODO: chceck params
+        super().Parse(writer, data, appendData)
         odAppend = {"trans_id": appendData["id"]}
 
         if hasattr(data.ret, "orderDetails"):

@@ -47,7 +47,7 @@ CREATE TABLE error_block_num(
     block_num bigint
 ) format 'csv';
 
-CREATE TABLE block(
+CREATE TABLE block( -- CHECKED
     block_num bigint,
     hash text,
     parent_hash text,
@@ -60,7 +60,7 @@ CREATE TABLE block(
     witness_signature text,
     account_state_root text
 ) format 'csv';
-CREATE TABLE trans(
+CREATE TABLE trans( -- TOCHECK:order_id, asset_issue_id
     id text,
     block_hash text,
     block_num bigint,
@@ -86,13 +86,11 @@ CREATE TABLE trans(
     trans_time bigint,
     fee_limit bigint,
     scripts text,
-    scripts_decode text,
     data text,
-    data_decode text,
     -- raw END
     signature text
 ) format 'csv';
-CREATE TABLE trans_market_order_detail(
+CREATE TABLE trans_market_order_detail( -- NODATA
     trans_id text,
     makerOrderId text,
     taker_order_id text,
@@ -100,14 +98,14 @@ CREATE TABLE trans_market_order_detail(
     fill_buy_quantity bigint
 ) format 'csv';
 
-CREATE TABLE trans_auths(
+CREATE TABLE trans_auths( -- NODATA
     trans_id text,
     account_address text,
     account_name text,
     permission_name text
 ) format 'csv';
 
-CREATE TABLE account_create_contract(
+CREATE TABLE account_create_contract( -- CHECKED
     trans_id text,
     ret int,
     provider text,
@@ -118,7 +116,7 @@ CREATE TABLE account_create_contract(
     account_address text,
     account_type int
 ) format 'csv';
-CREATE TABLE transfer_contract(
+CREATE TABLE transfer_contract( -- CHECKED
     trans_id text,
     ret int,
     provider text,
@@ -129,7 +127,7 @@ CREATE TABLE transfer_contract(
     to_address text,
     amount bigint
 ) format 'csv';
-CREATE TABLE transfer_asset_contract(
+CREATE TABLE transfer_asset_contract( -- CHECKED
     trans_id text,
     ret int,
     provider text,
@@ -141,12 +139,12 @@ CREATE TABLE transfer_asset_contract(
     to_address text,
     amount bigint
 ) format 'csv';
-CREATE TABLE vote_asset_contract(
+CREATE TABLE vote_asset_contract( -- NODATA
     trans_id text,
     ret int,
     bytes_hex text
 ) format 'csv';
-CREATE TABLE vote_witness_contract(
+CREATE TABLE vote_witness_contract( -- NODATA
     trans_id text,
     ret int,
     bytes_hex text
@@ -175,7 +173,7 @@ CREATE TABLE vote_witness_contract(
 --     vote_address text,
 --     vote_count bigint
 -- ) format 'csv';
-CREATE TABLE witness_create_contract(
+CREATE TABLE witness_create_contract( --CHECKED
     trans_id text,
     ret int,
     provider text,
@@ -212,12 +210,12 @@ CREATE TABLE asset_issue_contract(
     public_free_asset_net_usage bigint,
     public_latest_free_net_time bigint
 ) format 'csv';
-CREATE TABLE asset_issue_contract_frozen_supply(
+CREATE TABLE asset_issue_contract_frozen_supply( --NODATA
     trans_id text,
     frozen_amount bigint,
     frozen_days bigint
 ) format 'csv';
-CREATE TABLE witness_update_contract(
+CREATE TABLE witness_update_contract( --CHECKED 
     trans_id text,
     ret int,
     provider text,
@@ -227,7 +225,7 @@ CREATE TABLE witness_update_contract(
     owner_address text,
     update_url text
 ) format 'csv';
-CREATE TABLE participate_asset_issue_contract(
+CREATE TABLE participate_asset_issue_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
@@ -239,7 +237,7 @@ CREATE TABLE participate_asset_issue_contract(
     asset_name text,
     amount bigint
 ) format 'csv';
-CREATE TABLE account_update_contract(
+CREATE TABLE account_update_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
@@ -249,7 +247,7 @@ CREATE TABLE account_update_contract(
     owner_address text,
     account_name text
 ) format 'csv';
-CREATE TABLE freeze_balance_contract(
+CREATE TABLE freeze_balance_contract( --CHECKED 
     trans_id text,
     ret int,
     provider text,
@@ -262,7 +260,7 @@ CREATE TABLE freeze_balance_contract(
     resource int,
     receiver_address text
 ) format 'csv';
-CREATE TABLE unfreeze_balance_contract(
+CREATE TABLE unfreeze_balance_contract( --CHECKED 
     trans_id text,
     ret int,
     provider text,
@@ -273,7 +271,7 @@ CREATE TABLE unfreeze_balance_contract(
     resource int,
     receiver_address text
 ) format 'csv';
-CREATE TABLE withdraw_balance_contract(
+CREATE TABLE withdraw_balance_contract( --CHECKED 
     trans_id text,
     ret int,
     provider text,
@@ -282,7 +280,7 @@ CREATE TABLE withdraw_balance_contract(
     -- more
     owner_address text
 ) format 'csv';
-CREATE TABLE unfreeze_asset_contract(
+CREATE TABLE unfreeze_asset_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
@@ -291,7 +289,7 @@ CREATE TABLE unfreeze_asset_contract(
     -- more
     owner_address text
 ) format 'csv';
-CREATE TABLE update_asset_contract(
+CREATE TABLE update_asset_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
@@ -304,12 +302,12 @@ CREATE TABLE update_asset_contract(
     new_limit bigint,
     new_public_limit bigint
 ) format 'csv';
-CREATE TABLE proposal_create_contract(
+CREATE TABLE proposal_create_contract( -- NODATA
     trans_id text,
     ret int,
     bytes_hex text
 ) format 'csv';
-CREATE TABLE proposal_approve_contract(
+CREATE TABLE proposal_approve_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
@@ -320,7 +318,7 @@ CREATE TABLE proposal_approve_contract(
     proposal_id bigint,
     is_add_approval boolean
 ) format 'csv';
-CREATE TABLE proposal_delete_contract(
+CREATE TABLE proposal_delete_contract( -- NODATA
     trans_id text,
     ret int,
     provider text,
@@ -330,7 +328,7 @@ CREATE TABLE proposal_delete_contract(
     owner_address text,
     proposal_id bigint
 ) format 'csv';
-CREATE TABLE set_account_id_contract(
+CREATE TABLE set_account_id_contract( -- NODATA
     trans_id text,
     ret int,
     provider text,
@@ -340,20 +338,25 @@ CREATE TABLE set_account_id_contract(
     owner_address text,
     account_id text
 ) format 'csv';
+-- CREATE TABLE create_smart_contract(
+--     trans_id text,
+--     ret int,
+--     provider text,
+--     name text,
+--     permission_id int,
+--     -- more
+--     owner_address text,
+--     -- SmartContract new_contract = 2;
+--     contract_bytes text,
+--     call_token_value bigint,
+--     token_id bigint
+-- ) format 'csv';
 CREATE TABLE create_smart_contract(
     trans_id text,
     ret int,
-    provider text,
-    name text,
-    permission_id int,
-    -- more
-    owner_address text,
-    -- SmartContract new_contract = 2;
-    contract_bytes text,
-    call_token_value bigint,
-    token_id bigint
+    bytes_hex text
 ) format 'csv';
-CREATE TABLE trigger_smart_contract(
+CREATE TABLE trigger_smart_contract( --CHECKED
     trans_id text,
     ret int,
     provider text,
@@ -367,7 +370,7 @@ CREATE TABLE trigger_smart_contract(
     call_token_value bigint,
     token_id bigint
 ) format 'csv';
-CREATE TABLE update_setting_contract(
+CREATE TABLE update_setting_contract( --CHECKED
     trans_id text,
     ret int,
     provider text,
@@ -378,7 +381,7 @@ CREATE TABLE update_setting_contract(
     contract_address text,
     consume_user_resource_percent bigint
 ) format 'csv';
-CREATE TABLE exchange_create_contract(
+CREATE TABLE exchange_create_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
@@ -391,7 +394,7 @@ CREATE TABLE exchange_create_contract(
     second_token_id  text,
     second_token_balance bigint
 ) format 'csv';
-CREATE TABLE exchange_inject_contract(
+CREATE TABLE exchange_inject_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
@@ -403,7 +406,7 @@ CREATE TABLE exchange_inject_contract(
     token_id text,
     quant bigint
 ) format 'csv';
-CREATE TABLE exchange_withdraw_contract(
+CREATE TABLE exchange_withdraw_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
@@ -415,7 +418,7 @@ CREATE TABLE exchange_withdraw_contract(
     token_id text,
     quant bigint
 ) format 'csv';
-CREATE TABLE exchange_transaction_contract(
+CREATE TABLE exchange_transaction_contract( --CHECKED
     trans_id text,
     ret int,
     provider text,
@@ -428,7 +431,7 @@ CREATE TABLE exchange_transaction_contract(
     quant bigint,
     expected bigint
 ) format 'csv';
-CREATE TABLE update_energy_limit_contract(
+CREATE TABLE update_energy_limit_contract( --CHECKED
     trans_id text,
     ret int,
     provider text,
@@ -444,7 +447,7 @@ CREATE TABLE account_permission_update_contract(
     ret int,
     bytes_hex text
 ) format 'csv';
-CREATE TABLE clear_abi_contract(
+CREATE TABLE clear_abi_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
@@ -454,7 +457,7 @@ CREATE TABLE clear_abi_contract(
     owner_address text,
     contract_address text
 ) format 'csv';
-CREATE TABLE update_brokerage_contract(
+CREATE TABLE update_brokerage_contract( --CHECKED
     trans_id text,
     ret int,
     provider text,
@@ -481,7 +484,7 @@ CREATE TABLE shielded_transfer_contract(
     -- to_amount bigint
 ) format 'csv';
 
-CREATE TABLE market_sell_asset_contract(
+CREATE TABLE market_sell_asset_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
@@ -495,7 +498,7 @@ CREATE TABLE market_sell_asset_contract(
     buy_token_quantity bigint
 ) format 'csv';
 
-CREATE TABLE market_cancel_order_contract(
+CREATE TABLE market_cancel_order_contract( --NODATA
     trans_id text,
     ret int,
     provider text,
