@@ -43,7 +43,9 @@ blockDB = plyvel.DB("/data2/20210425/output-directory/database/block")
 i = blockIndexDB.get(
     num2Bytes(56186)
 )  # owner_address decode err  account_create_contract  d7c755fa357067413d653ed4878b94490266f80de4c959f3c60138e2961523e0
-
+i = blockIndexDB.get(num2Bytes(1723935))
+# 'charmap' codec can't decode byte 0x8d in position 48: character maps to <undefined>
+# asset_issue_contract description
 
 # 0000000001c3ece19dbc80547e9ede5d4613fd4ea5f90e154afef6f0388ac3f0
 blk = blockDB.get(i)
@@ -78,6 +80,7 @@ import core.contract.asset_issue_contract_pb2 as aic
 
 c = aic.AssetIssueContract()
 c.ParseFromString(blkIns.transactions[0].raw_data.contract[0].parameter.value)
+# c.ParseFromString(blkIns.transactions[1].raw_data.contract[0].parameter.value)
 
 # import core.contract.balance_contract_pb2.FreezeBalanceContract
 import core.contract.balance_contract_pb2 as bc

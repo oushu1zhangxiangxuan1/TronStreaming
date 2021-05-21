@@ -20,7 +20,6 @@ from parsing.block import (
     ColumnIndex,
     OriginColumn,
     addressFromBytes,
-    bytesRawDecode,
     bytes2HexStr,
     ownerAddressDecode,
     autoDecode,
@@ -166,7 +165,7 @@ class ContractBaseParser(BaseParser):
         #     print("account_create_contract: ", data)
         #     print("account_create_contract append data: ", appendData)
         self.contract.ParseFromString(data)
-        super().Parse(writer, self.contract, appendData)
+        return super().Parse(writer, self.contract, appendData)
 
 
 class AccountCreateContractParser(ContractBaseParser):
@@ -309,11 +308,11 @@ class AssetIssueContractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="name_",
-            oc=OriginColumn(name="name", castFunc=bytesRawDecode),
+            oc=OriginColumn(name="name", castFunc=autoDecode),
         ),
         ColumnIndex(
             name="abbr",
-            oc=OriginColumn(name="abbr", castFunc=bytesRawDecode),
+            oc=OriginColumn(name="abbr", castFunc=autoDecode),
         ),
         ColumnIndex(
             name="total_supply",
@@ -353,7 +352,7 @@ class AssetIssueContractParser(ContractBaseParser):
         ),
         ColumnIndex(
             name="url",
-            oc=OriginColumn(name="url", castFunc=bytesRawDecode),
+            oc=OriginColumn(name="url", castFunc=autoDecode),
         ),
         ColumnIndex(
             name="free_asset_net_limit",
@@ -375,10 +374,15 @@ class AssetIssueContractParser(ContractBaseParser):
     table = "asset_issue_contract"
 
     def Parse(self, writer, data, appendData):
-        super().Parse(writer, data, appendData)  # TODO: super 的table是不是空的？
+        ret = super().Parse(writer, data, appendData)
+        if not ret:
+            return False
         frozenAppend = {"trans_id": appendData["trans_id"]}
         for f in self.contract.frozen_supply:
-            self.frozenSupplyParser.Parse(writer, data, frozenAppend)
+            ret = self.frozenSupplyParser.Parse(writer, data, frozenAppend)
+            if not ret:
+                return False
+        return True
 
 
 class FrozenSupplyParser(ContractBaseParser):
@@ -879,6 +883,7 @@ class ContractRawParser(BaseParser):
                 vals.append(appendData[col.name])
         vals.append(bytes2HexStr(data))  # TODO:how to decode
         self.Write(writer, vals)
+        return True
 
 
 bytes_hex_contracts = [

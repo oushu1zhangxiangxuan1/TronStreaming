@@ -30,7 +30,21 @@ from parsing import contract
 # .getContractParser as getContractParser
 
 env.touch()
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(
+#     format="%(asctime)s.%(msecs)03d [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
+#     datefmt="## %Y-%m-%d %H:%M:%S",
+# )
+
+logging.getLogger().setLevel(logging.INFO)
+logger = logging.getLogger()
+ch = logging.StreamHandler()
+formatter = logging.Formatter(
+    "[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)d] %(message)s"
+)
+# add formatter to console handler
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 
 def bytes2HexStr(data):
@@ -64,13 +78,20 @@ def ownerAddressDecode(data):
 
 
 def autoDecode(data):
-    encs = chardet.detect(data)
     try:
-        return data.decode(encs["encoding"])
+        return data.decode()
     except Exception:
-        logging.error("Failed to decode: {}".format(data))
-        raise  # TODO: remove raise
-        return data
+        encs = chardet.detect(data)
+        if encs and encs["encoding"] and len(encs["encoding"]) > 0:
+            try:
+                return data.decode(encs["encoding"])
+            # except Exception as e:
+            except Exception:
+                logger.error("Failed to decode: {}".format(data))
+                # raise e  # TODO: remove raise
+                return data
+        else:
+            return data
 
 
 class TransWriter:
@@ -145,7 +166,7 @@ class TransWriter:
                 "{}-{}.csv".format(self.config["start_num"], self.config["end_num"]),
             )
             if os.access(csv_path, os.F_OK):
-                logging.error("{} already exists!".format(csv_path))
+                logger.error("{} already exists!".format(csv_path))
                 raise "Failed to init writers: {}".format(
                     "{} already exists!".format(csv_path)
                 )
@@ -162,7 +183,11 @@ class TransWriter:
                 w.close()
             except Exception:
                 traceback.print_exc()
-                logging.error("Failed to close {}'s writer.".format(t))
+                logger.error("Failed to close {}'s writer.".format(t))
+
+    def flush(self):
+        for _, w in self.FileHandler.items():
+            w.flush()
 
 
 def CheckPathAccess(path: str) -> Tuple[bool, str]:
@@ -182,13 +207,13 @@ class ConfigParser:
             with open("./block.json") as f:
                 config = json.load(f)
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return None, "Parse config json error."
         logging.warn("config is : {}".format(config))
 
         inputDir = config.get("input_dir")
         if inputDir is None or len(inputDir.strip()) == 0:
-            logging.error("input_dir not specified.")
+            logger.error("input_dir not specified.")
             return None, "input_dir not specified."
 
         # check block_dir block_index_dir exists
@@ -196,36 +221,36 @@ class ConfigParser:
         block_index_dir = path.join(inputDir, "block-index")
         ok, err = CheckPathAccess(block_dir)
         if not ok:
-            logging.error("block dir {}.".format(err))
+            logger.error("block dir {}.".format(err))
             return None, "block dir {}.".format(err)
         config["blockDb"] = block_dir
         ok, err = CheckPathAccess(block_index_dir)
         if not ok:
-            logging.error("block_index_dir {}.".format(err))
+            logger.error("block_index_dir {}.".format(err))
             return None, "block_index_dir {}.".format(err)
         config["blockIndexDb"] = block_index_dir
 
         outputDir = config.get("output_dir")
         if outputDir is None or len(outputDir.strip()) == 0:
-            logging.error("output_dir not specified.")
+            logger.error("output_dir not specified.")
             return None, "output_dir not specified."
         ok, err = CheckPathAccess(outputDir)
         if not ok:
-            logging.error("output_dir {}.".format(err))
+            logger.error("output_dir {}.".format(err))
             return None, "output_dir {}.".format(err)
 
         start_num = config.get("start_num")
         if start_num is None or type(start_num) is not int or start_num < 0:
-            logging.error("start_num should be positive integer.")
+            logger.error("start_num should be positive integer.")
             return None, "start_num should be positive integer."
 
         end_num = config.get("end_num")
         if end_num is None or type(end_num) is not int or end_num < 0:
-            logging.error("end_num should be positive integer.")
+            logger.error("end_num should be positive integer.")
             return None, "end_num should be positive integer."
 
         if start_num >= end_num:
-            logging.error("end_num greater than start_num.")
+            logger.error("end_num greater than start_num.")
             return None, "end_num greater than start_num."
 
         return config, None
@@ -290,10 +315,9 @@ class OriginColumn:
                 return self.String(subData)
             return self.oc.getattr(subData)
         except Exception as e:
-            logging.error(
+            logger.error(
                 "Failed to getattr: {}\n From data: {}".format(self.name, data)
             )
-            traceback.print_exc()
             raise e
 
 
@@ -314,7 +338,7 @@ class BaseParser:
 
     def Parse(self, writer, data, appendData):
         if len(self.colIndex) == 0 or self.table is None:
-            logging.error("请勿直接调用抽象类方法，请实例化类并未对象变量赋值")
+            logger.error("请勿直接调用抽象类方法，请实例化类并未对象变量赋值")
             return False
 
         vals = []
@@ -512,21 +536,15 @@ class TransParser(BaseParser):
         ),
         ColumnIndex(
             name="scripts_decode",
-            oc=_rawDataWrapper(
-                OriginColumn(name="scripts", castFunc=bytesRawDecode)
-            ),  # TODO: deocode or hex
+            oc=_rawDataWrapper(OriginColumn(name="scripts", castFunc=autoDecode)),
         ),
         ColumnIndex(
             name="data",
-            oc=_rawDataWrapper(
-                OriginColumn(name="data", colType="bytes")
-            ),  # TODO: deocode or hex
-        ),
+            oc=_rawDataWrapper(OriginColumn(name="data", castFunc=autoDecode)),
+        ),  # TODO: remove one
         ColumnIndex(
-            name="data_decode",
-            oc=_rawDataWrapper(
-                OriginColumn(name="data", castFunc=bytesRawDecode)
-            ),  # TODO: deocode or hex
+            name="data",
+            oc=_rawDataWrapper(OriginColumn(name="data", castFunc=autoDecode)),
         ),
         # ColumnIndex(name="signature", oc=OriginColumn(name="signature", colType="bytes", castFunc=parseFirst)), TODO: 处理
         ColumnIndex(
@@ -555,7 +573,7 @@ class TransParser(BaseParser):
                 AuthParser.Parse(writer, auth, odAppend)
 
         # 解析contract
-        # logging.info("trans data: {}".format(data))
+        # logger.info("trans data: {}".format(data))
         odAppend["ret"] = None
         # print("data: ", data)
         if len(data.ret) > 0:
@@ -571,12 +589,12 @@ class TransParser(BaseParser):
             )
             return ret
         except Exception as e:
-            logging.error(
-                "Failed from contract type: {}".format(
-                    contract.contractTableMap.get(data.raw_data.contract[0].type)
+            logger.error(
+                "Failed from contract type: {}, \nCause:\n{}".format(
+                    contract.contractTableMap.get(data.raw_data.contract[0].type), e
                 )
             )
-            raise e
+            return False
 
 
 transParser = TransParser()
@@ -633,29 +651,29 @@ class OrderDetailParser:
 def main():
     config, err = ConfigParser.Parse()
     if err is not None:
-        logging.error("Failed to get hawq config: {}".format(err))
+        logger.error("Failed to get hawq config: {}".format(err))
         exit(-1)
     transWriter = TransWriter(config)
 
     start = datetime.datetime.now()
+    count = 1
     try:
         blockDb = plyvel.DB(config.get("blockDb"))
         blockIndexDb = plyvel.DB(config.get("blockIndexDb"))
 
         contract.initContractParser()
-
-        count = 1
         for i in range(config.get("start_num"), config.get("end_num")):
             try:
-                if count % 100 == 0:
+                if count % 1000 == 0:
                     end = datetime.datetime.now()
-                    logging.info(
+                    logger.info(
                         "已处理 {} 个区块，共耗时 {} 微秒, 平均单个耗时 {} 微秒".format(
                             count,
                             (end - start).microseconds,
                             (end - start).microseconds / count,
                         )
                     )
+                    transWriter.flush()
                 blockHashBytes = blockIndexDb.get(num2Bytes(i))
                 blockBytes = blockDb.get(blockHashBytes)
                 blockHash = bytes2HexStr(blockHashBytes)
@@ -665,20 +683,22 @@ def main():
                 bp = BlockParser()
                 ret = bp.Parse(transWriter, block, appendData)
                 if not ret:
-                    logging.error("Failed to parse block num: {}".format(i))
+                    logger.error("Failed to parse block num: {}".format(i))
+                    break
                 count += 1
             except Exception:
-                logging.error("Failed to parse block num: {}".format(i))
+                logger.error("Failed to parse block num: {}".format(i))
                 traceback.print_exc()
                 transWriter.write("error_block_num", [i])
+                break
             # except Exception as e:
-            #     logging.error("Failed to parse block num: {}".format(i))
+            #     logger.error("Failed to parse block num: {}".format(i))
             #     traceback.print_exc()
             #     raise e
             #     break
 
         # end = datetime.datetime.now()
-        # logging.info(
+        # logger.info(
         #     "共处理 {} 个区块，共耗时 {} 微秒, 平均单个耗时 {} 微秒".format(
         #         count - 1,
         #         (end - start).microseconds,
@@ -688,24 +708,23 @@ def main():
     except Exception:
         traceback.print_exc()
     finally:
+        transWriter.flush()
         transWriter.close()
         end = datetime.datetime.now()
-        logging.info(
+        logger.info(
             "共处理 {} 个区块，共耗时 {} 微秒, 平均单个耗时 {} 微秒".format(
                 count - 1,
                 (end - start).microseconds,
                 (end - start).microseconds / (count - 1),
             )
         )
-        logging.info(
+        logger.info(
             "处理 29617377 个区块，预计用时 {} 小时".format(
-                ((229617377 / (count - 1)) * (end - start).microseconds)
-                / 1000000
-                / 3600
+                ((29617377 / (count - 1)) * (end - start).microseconds) / 1000000 / 3600
             )
         )
-        logging.info("开始时间: {}".format(start.strftime("%Y-%m-%d %H:%M:%S")))
-        logging.info("结束时间: {}".format(end.strftime("%Y-%m-%d %H:%M:%S")))
+        logger.info("开始时间: {}".format(start.strftime("%Y-%m-%d %H:%M:%S")))
+        logger.info("结束时间: {}".format(end.strftime("%Y-%m-%d %H:%M:%S")))
 
 
 if "__main__" == __name__:
