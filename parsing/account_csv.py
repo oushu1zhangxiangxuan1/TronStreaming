@@ -215,8 +215,12 @@ class MapInfo:
 
 
 frozen_OC = [
-    ColumnIndex(name="frozen_balance", oc=OriginColumn("frozen_balance", "int64")),
-    ColumnIndex(name="expire_time", oc=OriginColumn("expire_time", "int64")),
+    ColumnIndex(
+        name="frozen_balance", oc=OriginColumn(name="frozen_balance", colType="int64")
+    ),
+    ColumnIndex(
+        name="expire_time", oc=OriginColumn(name="expire_time", colType="int64")
+    ),
 ]
 
 
@@ -236,55 +240,72 @@ class Account:
             name="account_name",
             oc=OriginColumn(name="account_name", castFunc=autoDecode),
         ),
-        ColumnIndex(name="type", oc=OriginColumn("type", "int")),
+        ColumnIndex(name="type", oc=OriginColumn(name="type", colType="int")),
         ColumnIndex(
             name="address",
-            oc=OriginColumn(name="address", colType="bytes", castFunc=addressFromBytes),
+            oc=OriginColumn(name="address", castFunc=addressFromBytes),
         ),
-        ColumnIndex(name="balance", oc=OriginColumn("balance", "int")),
-        ColumnIndex(name="net_usage", oc=OriginColumn("net_usage", "int64")),
+        ColumnIndex(name="balance", oc=OriginColumn(name="balance", colType="int")),
+        ColumnIndex(
+            name="net_usage", oc=OriginColumn(name="net_usage", colType="int64")
+        ),
         ColumnIndex(
             name="acquired_delegated_frozen_balance_for_bandwidth",
-            oc=OriginColumn("acquired_delegated_frozen_balance_for_bandwidth", "int64"),
+            oc=OriginColumn(
+                name="acquired_delegated_frozen_balance_for_bandwidth", colType="int64"
+            ),
         ),
         ColumnIndex(
             name="delegated_frozen_balance_for_bandwidth",
-            oc=OriginColumn("delegated_frozen_balance_for_bandwidth", "int64"),
+            oc=OriginColumn(
+                name="delegated_frozen_balance_for_bandwidth", colType="int64"
+            ),
         ),
-        ColumnIndex(name="create_time", oc=OriginColumn("create_time", "int64")),
+        ColumnIndex(
+            name="create_time", oc=OriginColumn(name="create_time", colType="int64")
+        ),
         ColumnIndex(
             name="latest_opration_time",
-            oc=OriginColumn("latest_opration_time", "int64"),
+            oc=OriginColumn(name="latest_opration_time", colType="int64"),
         ),
-        ColumnIndex(name="allowance", oc=OriginColumn("allowance", "int64")),
+        ColumnIndex(
+            name="allowance", oc=OriginColumn(name="allowance", colType="int64")
+        ),
         ColumnIndex(
             name="latest_withdraw_time",
-            oc=OriginColumn("latest_withdraw_time", "int64"),
+            oc=OriginColumn(name="latest_withdraw_time", colType="int64"),
+        ),
+        ColumnIndex(name="code_2l", oc=OriginColumn(name="code", castFunc=autoDecode)),
+        ColumnIndex(name="code_2hs", oc=OriginColumn(name="code", colType="bytes")),
+        ColumnIndex(
+            name="is_witness", oc=OriginColumn(name="is_witness", colType="bool")
         ),
         ColumnIndex(
-            name="code_2l", oc=OriginColumn("code", "bytes", castFunc=autoDecode)
+            name="is_committee", oc=OriginColumn(name="is_committee", colType="bool")
         ),
-        ColumnIndex(name="code_2hs", oc=OriginColumn("code", "bytes")),
-        ColumnIndex(name="is_witness", oc=OriginColumn("is_witness", "bool")),
-        ColumnIndex(name="is_committee", oc=OriginColumn("is_committee", "bool")),
         ColumnIndex(
             name="asset_issued_name",
-            oc=OriginColumn("asset_issued_name", castFunc=autoDecode),
+            oc=OriginColumn(name="asset_issued_name", castFunc=autoDecode),
         ),
         ColumnIndex(
             name="asset_issued_id_2l",
-            oc=OriginColumn("asset_issued_ID", castFunc=autoDecode),
+            oc=OriginColumn(name="asset_issued_ID", castFunc=autoDecode),
         ),
         ColumnIndex(
-            name="asset_issued_id_2hs", oc=OriginColumn("asset_issued_ID", "bytes")
+            name="asset_issued_id_2hs",
+            oc=OriginColumn(name="asset_issued_ID", colType="bytes"),
         ),
-        ColumnIndex(name="free_net_usage", oc=OriginColumn("free_net_usage", "int64")),
         ColumnIndex(
-            name="latest_consume_time", oc=OriginColumn("latest_consume_time", "int64")
+            name="free_net_usage",
+            oc=OriginColumn(name="free_net_usage", colType="int64"),
+        ),
+        ColumnIndex(
+            name="latest_consume_time",
+            oc=OriginColumn(name="latest_consume_time", colType="int64"),
         ),
         ColumnIndex(
             name="latest_consume_free_time",
-            oc=OriginColumn("latest_consume_free_time", "int64"),
+            oc=OriginColumn(name="latest_consume_free_time", colType="int64"),
         ),
         ColumnIndex(
             name="account_id", oc=OriginColumn(name="account_id", castFunc=autoDecode)
@@ -301,12 +322,12 @@ class Account:
                 # ColumnIndex(name="amount", fromAppend=True),
             ],
             mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("amount", "int64"),
+                key=OriginColumn(name="asset_id", colType="string"),
+                value=OriginColumn(name="amount", colType="int64"),
             ),
             appendCols={
                 "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
+                    name="address", castFunc=addressFromBytes
                 )
             },
         ),
@@ -319,12 +340,12 @@ class Account:
                 # ColumnIndex(name="amount", fromAppend=True),
             ],
             mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("amount", "int64"),
+                key=OriginColumn(name="asset_id", colType="string"),
+                value=OriginColumn(name="amount", colType="int64"),
             ),
             appendCols={
                 "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
+                    name="address", castFunc=addressFromBytes
                 )
             },
         ),
@@ -335,7 +356,7 @@ class Account:
             subCols=None,
             appendCols={
                 "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
+                    name="address", castFunc=addressFromBytes
                 )
             },
         ),
@@ -346,7 +367,7 @@ class Account:
             subCols=None,
             appendCols={
                 "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
+                    name="address", castFunc=addressFromBytes
                 )
             },
         ),
@@ -359,12 +380,12 @@ class Account:
                 # ColumnIndex(name="latest_opration_time", fromAppend=True),
             ],
             mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("latest_opration_time", "int64"),
+                key=OriginColumn(name="asset_id", colType="string"),
+                value=OriginColumn(name="latest_opration_time", colType="int64"),
             ),
             appendCols={
                 "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
+                    name="address", castFunc=addressFromBytes
                 )
             },
         ),
@@ -377,12 +398,12 @@ class Account:
                 # ColumnIndex(name="latest_opration_time", fromAppend=True),
             ],
             mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("latest_opration_time", "int64"),
+                key=OriginColumn(name="asset_id", colType="string"),
+                value=OriginColumn(name="latest_opration_time", colType="int64"),
             ),
             appendCols={
                 "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
+                    name="address", castFunc=addressFromBytes
                 )
             },
         ),
@@ -395,12 +416,12 @@ class Account:
                 # ColumnIndex(name="net_usage", fromAppend=True),
             ],
             mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("net_usage", "int64"),
+                key=OriginColumn(name="asset_id", colType="string"),
+                value=OriginColumn(name="net_usage", colType="int64"),
             ),
             appendCols={
                 "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
+                    name="address", castFunc=addressFromBytes
                 )
             },
         ),
@@ -413,12 +434,12 @@ class Account:
                 # ColumnIndex(name="net_usages", fromAppend=True),
             ],
             mapInfo=MapInfo(
-                key=OriginColumn("asset_id", "string"),
-                value=OriginColumn("net_usage", "int64"),
+                key=OriginColumn(name="asset_id", colType="string"),
+                value=OriginColumn(name="net_usage", colType="int64"),
             ),
             appendCols={
                 "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
+                    name="address", castFunc=addressFromBytes
                 )
             },
         ),
@@ -428,7 +449,8 @@ class Account:
             cols=[
                 addressAppend,
                 ColumnIndex(
-                    name="energy_usage", oc=OriginColumn("energy_usage", "int64")
+                    name="energy_usage",
+                    oc=OriginColumn(name="energy_usage", colType="int64"),
                 ),
                 ColumnIndex(
                     name="frozen_balance_for_energy",
@@ -446,33 +468,42 @@ class Account:
                 ),
                 ColumnIndex(
                     name="latest_consume_time_for_energy",
-                    oc=OriginColumn("latest_consume_time_for_energy", "int64"),
+                    oc=OriginColumn(
+                        name="latest_consume_time_for_energy", colType="int64"
+                    ),
                 ),
                 ColumnIndex(
                     name="acquired_delegated_frozen_balance_for_energy",
                     oc=OriginColumn(
-                        "acquired_delegated_frozen_balance_for_energy", "int64"
+                        name="acquired_delegated_frozen_balance_for_energy",
+                        colType="int64",
                     ),
                 ),
                 ColumnIndex(
                     name="delegated_frozen_balance_for_energy",
-                    oc=OriginColumn("delegated_frozen_balance_for_energy", "int64"),
+                    oc=OriginColumn(
+                        name="delegated_frozen_balance_for_energy", colType="int64"
+                    ),
                 ),
                 ColumnIndex(
-                    name="storage_limit", oc=OriginColumn("storage_limit", "int64")
+                    name="storage_limit",
+                    oc=OriginColumn(name="storage_limit", colType="int64"),
                 ),
                 ColumnIndex(
-                    name="storage_usage", oc=OriginColumn("storage_usage", "int64")
+                    name="storage_usage",
+                    oc=OriginColumn(name="storage_usage", colType="int64"),
                 ),
                 ColumnIndex(
                     name="latest_exchange_storage_time",
-                    oc=OriginColumn("latest_exchange_storage_time", "int64"),
+                    oc=OriginColumn(
+                        name="latest_exchange_storage_time", colType="int64"
+                    ),
                 ),
             ],
             subCols=None,
             appendCols={
                 "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
+                    name="address", castFunc=addressFromBytes
                 )
             },
         ),
@@ -483,14 +514,17 @@ class Account:
                 addressAppend,
                 ColumnIndex(
                     name="vote_address",
-                    oc=OriginColumn("vote_address", castFunc=addressFromBytes),
+                    oc=OriginColumn(name="vote_address", castFunc=addressFromBytes),
                 ),
-                ColumnIndex(name="vote_count", oc=OriginColumn("vote_count", "int64")),
+                ColumnIndex(
+                    name="vote_count",
+                    oc=OriginColumn(name="vote_count", colType="int64"),
+                ),
             ],
             subCols=None,
             appendCols={
                 "account_address": OriginColumn(
-                    "address", "bytes", castFunc=addressFromBytes
+                    name="address", castFunc=addressFromBytes
                 )
             },
             mapInfo=None,
@@ -672,7 +706,12 @@ def main():
                 acc.ParseFromString(v)
                 # if addressFromBytes(acc.address) not in [
                 #     # "TA7CEh4xHiY8kh28D6nyM2zVYKB8PSbZhh",
-                #     "T9yDMSrP8exVeYbBy7yFYnM5BNYbquSGRp",
+                #     # "T9yDMSrP8exVeYbBy7yFYnM5BNYbquSGRp",
+                #     "T9zoNbweZZXd7eVxbasQXDth54FEU3xsnb",
+                #     "T9ztt6FVT6c6mSGGRvbBDC32xqtxRAnQQ9",
+                #     "TA4JFjPAaY8Gtr4qUVUqBxK98aewUVEPAo",
+                #     "TA55VXkWcF2EbKX64aXiP21NidLrvAtF4d",
+                #     "TA5k7U2uUz6MxF3bnX1DE6KyzAX63MQ9tp",
                 # ]:
                 #     continue
                 ret = accInsert.Insert(tableWriter, acc)

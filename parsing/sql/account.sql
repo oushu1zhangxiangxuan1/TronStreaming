@@ -113,8 +113,8 @@ CREATE TABLE account_free_asset_net_usage_v2 (
 );
 
 SELECT * FROM account limit 5;
-SELECT * FROM account_resource limit 5;
-SELECT * FROM account_votes limit 5;
+SELECT * FROM account_resource limit 5; --CHECKED
+SELECT * FROM account_votes limit 5; --CHECKED
 SELECT * FROM account_asset limit 5; --CHECKED
 SELECT * FROM account_asset_v2 limit 5; --CHECKED
 SELECT * FROM account_latest_asset_operation_time limit 5; --NODATA
@@ -152,17 +152,33 @@ COPY account_free_asset_net_usage_v2 FROM '/data2/20210425/account_parsed/accoun
 
 
 SELECT 
-    -- account_name,
+    account_name,
     address,
-    -- code_2l,
-    -- code_2hs,
-    -- asset_issued_name,
-    -- account_id
-    -- asset_issued_id_2l,
-    -- asset_issued_id_2hs,
+    code_2l,
+    code_2hs,
+    asset_issued_name,
+    account_id
+    asset_issued_id_2l,
+    asset_issued_id_2hs
 FROM 
     account
-WHERE asset_issued_name is not null;
+WHERE asset_issued_id_2l is not null limit 5;
+
+
+
+SELECT 
+    account_name,
+    address,
+    code_2l,
+    code_2hs,
+    asset_issued_name,
+    account_id,
+    asset_issued_id_2l,
+    length(asset_issued_id_2l) as ail,
+    asset_issued_id_2hs
+FROM 
+    account
+WHERE asset_issued_id_2l is not null limit 5;
 
 -- TODO:
 -- 1. check account unique
