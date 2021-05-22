@@ -575,10 +575,29 @@ class TransParser(BaseParser):
         # print("odAppend: ", odAppend)
 
         contractParser = contract.getContractParser(data.raw_data.contract[0].type)
+
+        # if (
+        #     data.raw_data.contract[0].type
+        #     == contract.ContractType.UnfreezeAssetContract.value
+        # ):
+        #     logging.error("unfrezze trans id: {}".format(appendData["id"]))
+        #     logging.error(
+        #         "data.raw_data.contract[0].type: {}".format(
+        #             data.raw_data.contract[0].type
+        #         )
+        #     )
+        #     logging.error("contractParser: {}".format(contractParser))
         try:
             ret = contractParser.Parse(
                 writer, data.raw_data.contract[0].parameter.value, odAppend
             )
+            # if (
+            #     data.raw_data.contract[0].type
+            #     == contract.ContractType.UnfreezeAssetContract.value
+            # ):
+            #     logging.error("unfrezze trans id: {}".format(appendData["id"]))
+            #     logging.error("contractParser: {}".format(contractParser))
+            #     return False
             return ret
         except Exception as e:
             logger.error(

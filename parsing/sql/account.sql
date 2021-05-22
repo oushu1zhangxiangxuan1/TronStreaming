@@ -1,7 +1,23 @@
-DROP TABLE IF EXISTS account, account_resource,account_votes,account_asset,account_asset_v2,
-account_latest_asset_operation_time,account_latest_asset_operation_time_v2,account_frozen,
-account_frozen_supply,account_free_asset_net_usage,account_free_asset_net_usage_v2;
+DROP TABLE IF EXISTS 
+-- TRUNCATE TABLE
+error_account,
+account,
+account_resource,
+account_votes,
+account_asset,
+account_asset_v2,
+account_latest_asset_operation_time,
+account_latest_asset_operation_time_v2,
+account_frozen,
+account_frozen_supply,
+account_free_asset_net_usage,
+account_free_asset_net_usage_v2;
 
+CREATE TABLE error_account(
+    account_index bigint,
+    account_hex text,
+    account_address text
+) format 'csv';
 CREATE TABLE account (
     account_name text,
     type int, --Normal = 0; AssetIssue = 1; Contract = 2;
@@ -96,16 +112,57 @@ CREATE TABLE account_free_asset_net_usage_v2 (
     net_usage bigint
 );
 
-SELECT * from account_votes;
-SELECT * from account_free_asset_net_usage;
-SELECT * from account_latest_asset_operation_time;
-SELECT * from account_latest_asset_operation_time_v2;
+SELECT * FROM account limit 5;
+SELECT * FROM account_resource limit 5;
+SELECT * FROM account_votes limit 5;
+SELECT * FROM account_asset limit 5; --CHECKED
+SELECT * FROM account_asset_v2 limit 5; --CHECKED
+SELECT * FROM account_latest_asset_operation_time limit 5; --NODATA
+SELECT * FROM account_latest_asset_operation_time_v2 limit 5; --CHECKED
+SELECT * FROM account_frozen limit 5; --CHECKED
+SELECT * FROM account_frozen_supply limit 5; --CHECKED
+SELECT * FROM account_free_asset_net_usage limit 5; --NODATA
+SELECT * FROM account_free_asset_net_usage_v2 limit 5; --CHECKED
 
--- pkeys:account_id,asset_id
-CREATE TABLE block (
-    num bigint,
-    hash text,
-    parent_hash text,
-    create_time bigint,
-);
+TRUNCATE TABLE
+error_account,
+account,
+account_resource,
+account_votes,
+account_asset,
+account_asset_v2,
+account_latest_asset_operation_time,
+account_latest_asset_operation_time_v2,
+account_frozen,
+account_frozen_supply,
+account_free_asset_net_usage,
+account_free_asset_net_usage_v2;
+COPY error_account FROM '/data2/20210425/account_parsed/error_account.csv' csv;
+COPY account FROM '/data2/20210425/account_parsed/account.csv' csv;
+COPY account_resource FROM '/data2/20210425/account_parsed/account_resource.csv' csv;
+COPY account_votes FROM '/data2/20210425/account_parsed/account_votes.csv' csv;
+COPY account_asset FROM '/data2/20210425/account_parsed/account_asset.csv' csv;
+COPY account_asset_v2 FROM '/data2/20210425/account_parsed/account_asset_v2.csv' csv;
+COPY account_latest_asset_operation_time FROM '/data2/20210425/account_parsed/account_latest_asset_operation_time.csv' csv;
+COPY account_latest_asset_operation_time_v2 FROM '/data2/20210425/account_parsed/account_latest_asset_operation_time_v2.csv' csv;
+COPY account_frozen FROM '/data2/20210425/account_parsed/account_frozen.csv' csv;
+COPY account_frozen_supply FROM '/data2/20210425/account_parsed/account_frozen_supply.csv' csv;
+COPY account_free_asset_net_usage FROM '/data2/20210425/account_parsed/account_free_asset_net_usage.csv' csv;
+COPY account_free_asset_net_usage_v2 FROM '/data2/20210425/account_parsed/account_free_asset_net_usage_v2.csv' csv;
 
+
+SELECT 
+    -- account_name,
+    address,
+    -- code_2l,
+    -- code_2hs,
+    -- asset_issued_name,
+    -- account_id
+    -- asset_issued_id_2l,
+    -- asset_issued_id_2hs,
+FROM 
+    account
+WHERE asset_issued_name is not null;
+
+-- TODO:
+-- 1. check account unique

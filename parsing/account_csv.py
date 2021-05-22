@@ -1,4 +1,5 @@
 # -*- encoding: utf-8 -*-
+import env
 import Tron_pb2
 
 import json
@@ -12,16 +13,31 @@ from Crypto.Util.number import bytes_to_long as b2l
 # from Crypto.Util.number import long_to_bytes as l2b
 from binascii import hexlify as b2hs
 import tronapi
-import time
 import traceback
 import logging
 import datetime
 
-from sqlalchemy import create_engine
-import psycopg2
+import os.path as path
+import os
+import csv
+from typing import Tuple
+import chardet
 
-
-logging.basicConfig(level=logging.INFO)
+env.touch()
+# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
+    datefmt="## %Y-%m-%d %H:%M:%S",
+)
+logging.getLogger().setLevel(logging.INFO)
+logger = logging.getLogger()
+# ch = logging.StreamHandler()
+# formatter = logging.Formatter(
+#     "[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)d] %(message)s"
+# )
+# # add formatter to console handler
+# ch.setFormatter(formatter)
+# logger.addHandler(ch)
 
 
 def bytes2HexStr(data):
@@ -37,7 +53,35 @@ def addressFromHex(hex_str):
 
 
 def addressFromBytes(addr):
-    return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr))).decode()
+    cache = tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr)))
+    if type(cache) == bytes:
+        return cache.decode()
+    return cache
+
+
+def autoDecode(data):
+    try:
+        return data.decode()
+    except Exception:
+        encs = chardet.detect(data)
+        if encs and encs["encoding"] and len(encs["encoding"]) > 0:
+            try:
+                return data.decode(encs["encoding"])
+            # except Exception as e:
+            except Exception:
+                logger.error("Failed to decode: {}".format(data))
+                # raise e  # TODO: remove raise
+                return data
+        else:
+            return data
+
+
+def CheckPathAccess(path: str) -> Tuple[bool, str]:
+    if not os.path.isdir(path):
+        return False, "Dir not exists."
+    if not os.access(path, os.W_OK):
+        return False, "Permission denied."
+    return True, None
 
 
 class ConfigParser:
@@ -46,88 +90,104 @@ class ConfigParser:
         # valid = False
         config = None
         try:
-            with open("./hawq.json") as f:
+            with open("./account.json") as f:
                 config = json.load(f)
         except Exception as e:
             logging.error(e)
             return None, "Parse config json error."
         logging.warn("config is : {}".format(config))
-        # check hawq config
-        master = config.get("master")
-        standby = config.get("standby")
-        if (master is None or len(master.strip()) == 0) and (
-            standby is None or len(standby.strip()) == 0
-        ):
-            logging.error("Hawq master and standby not specified.")
-            return None, "Hawq master and standby not specified."
-        if master is not None:
-            config["master"] = master.strip()
-        else:
-            config["master"] = ""
 
-        if standby is not None:
-            config["standby"] = standby.strip()
-        else:
-            config["standby"] = ""
+        inputDir = config.get("input_dir")
+        if inputDir is None or len(inputDir.strip()) == 0:
+            logging.error("input_dir not specified.")
+            return None, "input_dir not specified."
+        ok, err = CheckPathAccess(inputDir)
+        if not ok:
+            logging.error("block dir {}.".format(err))
+            return None, "block dir {}.".format(err)
 
-        port = config.get("port")
-        if port is None:
-            logging.error("Hawq port not specified.")
-            return None, "Hawq port not specified."
-
-        user = config.get("user")
-        if user is None or len(user.strip()) == 0:
-            logging.error("Hawq user not specified.")
-            return None, "Hawq user not specified."
-
-        password = config.get("password")
-        if password is None:
-            logging.error("Hawq password not specified.")
-            return None, "Hawq password not specified."
-
-        database = config.get("database")
-        if database is None or len(database.strip()) == 0:
-            logging.error("Hawq database not specified.")
-            return None, "Hawq database not specified."
-        config["database"] = database.strip()
+        outputDir = config.get("output_dir")
+        if outputDir is None or len(outputDir.strip()) == 0:
+            logging.error("output_dir not specified.")
+            return None, "output_dir not specified."
+        ok, err = CheckPathAccess(outputDir)
+        if not ok:
+            logging.error("output_dir {}.".format(err))
+            return None, "output_dir {}.".format(err)
 
         return config, None
 
 
 class OriginColumn:
-    def __init__(self, colName=None, name=None, colType=None, castFunc=None, oc=None):
+    def __init__(
+        self,
+        name=None,
+        colType="bytes",
+        castFunc=None,
+        oc=None,
+        listHead=False,
+        default="",
+    ):
         self.oc = oc
         self.name = name
-        self.toNum = None
+        # self.toNum = None
+        self.listHead = listHead
+        self.default = default
         if not self.oc:
             self.type = colType
             self.castFunc = castFunc
-            if castFunc == b2l or colType in ["int64", "int"]:
-                self.toNum = True
+            # if (
+            #     castFunc == b2l
+            #     or castFunc == b2l
+            #     or colType in ["int64", "int32", "int"]
+            # ):
+            #     self.toNum = True
             if castFunc is None and colType == "bytes":
                 self.castFunc = bytes2HexStr
 
     def String(self, v):
         if self.castFunc:
             v = self.castFunc(v)
-        if self.toNum:
-            return "{}".format(v)
-        return "'{}'".format(v)
+        # if self.toNum:
+        #     return "{}".format(v)
+        # return "'{}'".format(v)
+        return v
 
     def hasattr(self, data):
         has = hasattr(data, self.name)
+        if not has:
+            return False
+        subData = getattr(data, self.name)
+        if self.listHead:
+            if len(subData) == 0:
+                return False
+            subData = subData[0]
         if not self.oc:
-            return has
-        if has:
-            subData = getattr(data, self.name)
-            return self.oc.hasattr(subData)
-        return False
+            return True
+        return self.oc.hasattr(subData)
 
     def getattr(self, data):
-        subData = getattr(data, self.name)
-        if not self.oc:
-            return self.String(subData)
-        return self.oc.getattr(subData)
+        try:
+            if not self.hasattr(data):
+                return self.default
+            subData = getattr(data, self.name)
+            if self.listHead:
+                subData = subData[0]
+            if not self.oc:
+                return self.String(subData)
+            return self.oc.getattr(subData)
+        except Exception as e:
+            logger.error(
+                "Failed to getattr: {}\n From data: {}".format(self.name, data)
+            )
+            raise e
+
+
+class ColumnIndex:
+    def __init__(self, name, fromAppend=False, oc=None):
+        self.name = name
+        self.FromAppend = fromAppend
+        self.oc = oc
 
 
 class SubTable:
@@ -154,10 +214,13 @@ class MapInfo:
         self.value = value
 
 
-frozen_OC = {
-    "frozen_balance": OriginColumn("frozen_balance", "int64"),
-    "expire_time": OriginColumn("expire_time", "int64"),
-}
+frozen_OC = [
+    ColumnIndex(name="frozen_balance", oc=OriginColumn("frozen_balance", "int64")),
+    ColumnIndex(name="expire_time", oc=OriginColumn("expire_time", "int64")),
+]
+
+
+addressAppend = ColumnIndex(name="account_address", fromAppend=True)
 
 
 class Column:
@@ -168,97 +231,75 @@ class Column:
 
 class Account:
 
-    colIndex = [
-        Column(name="account_name"),
-        Column(name="type"),
-        Column(name="address"),
-        Column(name="balance"),
-        Column(name="net_usage"),
-        Column(name="acquired_delegated_frozen_balance_for_bandwidth"),
-        Column(name="delegated_frozen_balance_for_bandwidth"),
-        Column(name="create_time"),
-        Column(name="latest_opration_time"),
-        Column(name="allowance"),
-        Column(name="latest_withdraw_time"),
-        Column(name="code_2l"),
-        Column(name="code_2hs"),
-        Column(name="is_witness"),
-        Column(name="is_committee"),
-        Column(name="asset_issued_name"),
-        Column(name="asset_issued_id_2l"),
-        Column(name="asset_issued_id_2hs"),
-        Column(name="free_net_usage"),
-        Column(name="latest_consume_time"),
-        Column(name="latest_consume_free_time"),
-        Column(name="account_id"),
+    cols = [
+        ColumnIndex(
+            name="account_name",
+            oc=OriginColumn(name="account_name", castFunc=autoDecode),
+        ),
+        ColumnIndex(name="type", oc=OriginColumn("type", "int")),
+        ColumnIndex(
+            name="address",
+            oc=OriginColumn(name="address", colType="bytes", castFunc=addressFromBytes),
+        ),
+        ColumnIndex(name="balance", oc=OriginColumn("balance", "int")),
+        ColumnIndex(name="net_usage", oc=OriginColumn("net_usage", "int64")),
+        ColumnIndex(
+            name="acquired_delegated_frozen_balance_for_bandwidth",
+            oc=OriginColumn("acquired_delegated_frozen_balance_for_bandwidth", "int64"),
+        ),
+        ColumnIndex(
+            name="delegated_frozen_balance_for_bandwidth",
+            oc=OriginColumn("delegated_frozen_balance_for_bandwidth", "int64"),
+        ),
+        ColumnIndex(name="create_time", oc=OriginColumn("create_time", "int64")),
+        ColumnIndex(
+            name="latest_opration_time",
+            oc=OriginColumn("latest_opration_time", "int64"),
+        ),
+        ColumnIndex(name="allowance", oc=OriginColumn("allowance", "int64")),
+        ColumnIndex(
+            name="latest_withdraw_time",
+            oc=OriginColumn("latest_withdraw_time", "int64"),
+        ),
+        ColumnIndex(
+            name="code_2l", oc=OriginColumn("code", "bytes", castFunc=autoDecode)
+        ),
+        ColumnIndex(name="code_2hs", oc=OriginColumn("code", "bytes")),
+        ColumnIndex(name="is_witness", oc=OriginColumn("is_witness", "bool")),
+        ColumnIndex(name="is_committee", oc=OriginColumn("is_committee", "bool")),
+        ColumnIndex(
+            name="asset_issued_name",
+            oc=OriginColumn("asset_issued_name", castFunc=autoDecode),
+        ),
+        ColumnIndex(
+            name="asset_issued_id_2l",
+            oc=OriginColumn("asset_issued_ID", castFunc=autoDecode),
+        ),
+        ColumnIndex(
+            name="asset_issued_id_2hs", oc=OriginColumn("asset_issued_ID", "bytes")
+        ),
+        ColumnIndex(name="free_net_usage", oc=OriginColumn("free_net_usage", "int64")),
+        ColumnIndex(
+            name="latest_consume_time", oc=OriginColumn("latest_consume_time", "int64")
+        ),
+        ColumnIndex(
+            name="latest_consume_free_time",
+            oc=OriginColumn("latest_consume_free_time", "int64"),
+        ),
+        ColumnIndex(
+            name="account_id", oc=OriginColumn(name="account_id", castFunc=autoDecode)
+        ),
     ]
-
-    cols = {
-        "account_name": OriginColumn(
-            colName="account_name", name="account_name", colType="bytes"
-        ),
-        "type": OriginColumn("type", "int"),
-        "address": OriginColumn("address", "bytes", castFunc=addressFromBytes),
-        "balance": OriginColumn("balance", "int"),
-        "net_usage": OriginColumn("net_usage", "int64"),
-        "acquired_delegated_frozen_balance_for_bandwidth": OriginColumn(
-            "acquired_delegated_frozen_balance_for_bandwidth", "int64"
-        ),
-        "delegated_frozen_balance_for_bandwidth": OriginColumn(
-            "delegated_frozen_balance_for_bandwidth", "int64"
-        ),
-        "create_time": OriginColumn("create_time", "int64"),
-        "latest_opration_time": OriginColumn("latest_opration_time", "int64"),
-        "allowance": OriginColumn("allowance", "int64"),
-        "latest_withdraw_time": OriginColumn("latest_withdraw_time", "int64"),
-        "code_2l": OriginColumn("code", "bytes", castFunc=b2l),
-        "code_2hs": OriginColumn("code", "bytes"),
-        "is_witness": OriginColumn("is_witness", "bool"),
-        "is_committee": OriginColumn("is_committee", "bool"),
-        "asset_issued_name": OriginColumn("asset_issued_name", "bytes"),
-        "asset_issued_id_2l": OriginColumn("asset_issued_ID", "bytes"),
-        "asset_issued_id_2hs": OriginColumn("asset_issued_ID", "bytes"),
-        "free_net_usage": OriginColumn("free_net_usage", "int64"),
-        "latest_consume_time": OriginColumn("latest_consume_time", "int64"),
-        "latest_consume_free_time": OriginColumn("latest_consume_free_time", "int64"),
-        "account_id": OriginColumn("account_id", "bytes"),
-    }
-
-    # cols = [
-    #     OriginColumn(
-    #         colName="account_name", name="account_name", colType="bytes"
-    #     ),
-    #     OriginColumn(colName="type", colType="int", name="type"),
-    #     OriginColumn(colName="address", colType="bytes", castFunc=addressFromBytes, name="address"),
-    #     "balance": OriginColumn(name="balance", colType="int", colName="balance"),
-    #     "net_usage": OriginColumn(name="net_usage", colType="int64"),
-    #     "acquired_delegated_frozen_balance_for_bandwidth": OriginColumn(
-    #         name="acquired_delegated_frozen_balance_for_bandwidth", colType="int64"
-    #     ),
-    #     "delegated_frozen_balance_for_bandwidth": OriginColumn(
-    #         name="delegated_frozen_balance_for_bandwidth", colType="int64"
-    #     ),
-    #     "create_time": OriginColumn(name="create_time", colType="int64"),
-    #     "latest_opration_time": OriginColumn(name="latest_opration_time", colType="int64"),
-    #     "allowance": OriginColumn(name="allowance", colType="int64"),
-    #     "latest_withdraw_time": OriginColumn(name="latest_withdraw_time", colType="int64"),
-    #     "code_2l": OriginColumn(name="code", colType="bytes", castFunc=b2l),
-    #     "code_2hs": OriginColumn(name="code", colType="bytes"),
-    #     "is_witness": OriginColumn(name="is_witness", colType="bool"),
-    #     "is_committee": OriginColumn(name="is_committee", colType="bool"),
-    #     "asset_issued_name": OriginColumn(name="asset_issued_name", colType="bytes"),
-    #     "asset_issued_id_2l": OriginColumn(name="asset_issued_ID", colType="bytes"),
-    #     "asset_issued_id_2hs": OriginColumn(name="asset_issued_ID", colType="bytes"),
-    #     "free_net_usage": OriginColumn(name="free_net_usage", colType="int64"),
-    #     "latest_consume_time": OriginColumn(name="latest_consume_time", colType="int64"),
-    #     "latest_consume_free_time": OriginColumn(name="latest_consume_free_time", colType="int64"),
-    #     "account_id": OriginColumn(name="account_id", colType="bytes"),
-    # ]
 
     subCols = {
         "account_asset": SubTable(
             colName="asset",
             sType="map",
+            cols=[
+                addressAppend,
+                # ColumnIndex(name="asset_id", fromAppend=True),
+                # ColumnIndex(name="amount", fromAppend=True),
+            ],
             mapInfo=MapInfo(
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("amount", "int64"),
@@ -272,6 +313,11 @@ class Account:
         "account_asset_v2": SubTable(
             colName="assetV2",
             sType="map",
+            cols=[
+                addressAppend,
+                # ColumnIndex(name="asset_id", fromAppend=True),
+                # ColumnIndex(name="amount", fromAppend=True),
+            ],
             mapInfo=MapInfo(
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("amount", "int64"),
@@ -285,7 +331,7 @@ class Account:
         "account_frozen": SubTable(
             sType="list",
             colName="frozen",
-            cols=frozen_OC,
+            cols=[addressAppend] + frozen_OC,
             subCols=None,
             appendCols={
                 "account_address": OriginColumn(
@@ -295,8 +341,8 @@ class Account:
         ),
         "account_frozen_supply": SubTable(
             sType="list",
-            colName="frozen",
-            cols=frozen_OC,
+            colName="frozen_supply",
+            cols=[addressAppend] + frozen_OC,
             subCols=None,
             appendCols={
                 "account_address": OriginColumn(
@@ -307,6 +353,11 @@ class Account:
         "account_latest_asset_operation_time": SubTable(
             colName="latest_asset_operation_time",
             sType="map",
+            cols=[
+                addressAppend,
+                # ColumnIndex(name="asset_id", fromAppend=True),
+                # ColumnIndex(name="latest_opration_time", fromAppend=True),
+            ],
             mapInfo=MapInfo(
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("latest_opration_time", "int64"),
@@ -320,6 +371,11 @@ class Account:
         "account_latest_asset_operation_time_v2": SubTable(
             colName="latest_asset_operation_timeV2",
             sType="map",
+            cols=[
+                addressAppend,
+                # ColumnIndex(name="asset_id", fromAppend=True),
+                # ColumnIndex(name="latest_opration_time", fromAppend=True),
+            ],
             mapInfo=MapInfo(
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("latest_opration_time", "int64"),
@@ -330,9 +386,14 @@ class Account:
                 )
             },
         ),
-        "free_asset_net_usage": SubTable(
+        "account_free_asset_net_usage": SubTable(
             colName="free_asset_net_usage",
             sType="map",
+            cols=[
+                addressAppend,
+                # ColumnIndex(name="asset_id", fromAppend=True),
+                # ColumnIndex(name="net_usage", fromAppend=True),
+            ],
             mapInfo=MapInfo(
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("net_usage", "int64"),
@@ -346,6 +407,11 @@ class Account:
         "account_free_asset_net_usage_v2": SubTable(
             colName="free_asset_net_usageV2",
             sType="map",
+            cols=[
+                addressAppend,
+                # ColumnIndex(name="asset_id", fromAppend=True),
+                # ColumnIndex(name="net_usages", fromAppend=True),
+            ],
             mapInfo=MapInfo(
                 key=OriginColumn("asset_id", "string"),
                 value=OriginColumn("net_usage", "int64"),
@@ -359,31 +425,50 @@ class Account:
         "account_resource": SubTable(
             sType="single",
             colName="account_resource",
-            cols={
-                "energy_usage": OriginColumn("energy_usage", "int64"),
-                "frozen_balance_for_energy": OriginColumn(
+            cols=[
+                addressAppend,
+                ColumnIndex(
+                    name="energy_usage", oc=OriginColumn("energy_usage", "int64")
+                ),
+                ColumnIndex(
                     name="frozen_balance_for_energy",
-                    oc=OriginColumn(name="frozen_balance", colType="int64"),
+                    oc=OriginColumn(
+                        name="frozen_balance_for_energy",
+                        oc=OriginColumn(name="frozen_balance", colType="int64"),
+                    ),
                 ),
-                "frozen_balance_for_energy_expire_time": OriginColumn(
-                    name="frozen_balance_for_energy",
-                    oc=OriginColumn(name="expire_time", colType="int64"),
+                ColumnIndex(
+                    name="frozen_balance_for_energy_expire_time",
+                    oc=OriginColumn(
+                        name="frozen_balance_for_energy",
+                        oc=OriginColumn(name="expire_time", colType="int64"),
+                    ),
                 ),
-                "latest_consume_time_for_energy": OriginColumn(
-                    "latest_consume_time_for_energy", "int64"
+                ColumnIndex(
+                    name="latest_consume_time_for_energy",
+                    oc=OriginColumn("latest_consume_time_for_energy", "int64"),
                 ),
-                "acquired_delegated_frozen_balance_for_energy": OriginColumn(
-                    "acquired_delegated_frozen_balance_for_energy", "int64"
+                ColumnIndex(
+                    name="acquired_delegated_frozen_balance_for_energy",
+                    oc=OriginColumn(
+                        "acquired_delegated_frozen_balance_for_energy", "int64"
+                    ),
                 ),
-                "delegated_frozen_balance_for_energy": OriginColumn(
-                    "delegated_frozen_balance_for_energy", "int64"
+                ColumnIndex(
+                    name="delegated_frozen_balance_for_energy",
+                    oc=OriginColumn("delegated_frozen_balance_for_energy", "int64"),
                 ),
-                "storage_limit": OriginColumn("storage_limit", "int64"),
-                "storage_usage": OriginColumn("storage_usage", "int64"),
-                "latest_exchange_storage_time": OriginColumn(
-                    "latest_exchange_storage_time", "int64"
+                ColumnIndex(
+                    name="storage_limit", oc=OriginColumn("storage_limit", "int64")
                 ),
-            },
+                ColumnIndex(
+                    name="storage_usage", oc=OriginColumn("storage_usage", "int64")
+                ),
+                ColumnIndex(
+                    name="latest_exchange_storage_time",
+                    oc=OriginColumn("latest_exchange_storage_time", "int64"),
+                ),
+            ],
             subCols=None,
             appendCols={
                 "account_address": OriginColumn(
@@ -394,10 +479,14 @@ class Account:
         "account_votes": SubTable(
             sType="list",
             colName="votes",
-            cols={
-                "vote_address": OriginColumn("vote_address", "bytes"),
-                "vote_count": OriginColumn("vote_count", "int64"),
-            },
+            cols=[
+                addressAppend,
+                ColumnIndex(
+                    name="vote_address",
+                    oc=OriginColumn("vote_address", castFunc=addressFromBytes),
+                ),
+                ColumnIndex(name="vote_count", oc=OriginColumn("vote_count", "int64")),
+            ],
             subCols=None,
             appendCols={
                 "account_address": OriginColumn(
@@ -454,78 +543,55 @@ class CommonParseAndInsert:
     # ):
     #     return func
 
-    def insert_error(self, data, appendix=None):
+    def insert_error(self, tableWriter, data, appendix=None):
         logging.error("Invalid sType {}: ", self.sType)
-        return False, []
+        return False
 
-    @loginfo
-    def insert_map(self, data, appendix=None):
-        sqlList = []
-        appendCols = []
-        appendVals = []
+    """
+    特殊逻辑:
+        只允许fromAppend进行有序写入
+        然后逐个写入key，value
+    """
+    # @loginfo
+    def insert_map(self, tableWriter, data, appendix=None):
         if data is None or len(data) == 0:
-            return True, sqlList
-        if appendix:
-            for k, v in appendix.items():
-                appendCols.append(k)
-                appendVals.append(v)
+            return True
+
+        appendVals = []
+        for col in self.cols:
+            appendVals = []
+            if col.FromAppend:
+                appendVals.append(appendix.get(col.name))
         for key in data:
-            insertCols = []
             insertVals = []
             v = data[key]
             # insert key name & value
-            insertCols.append(self.mapInfo.key.name)
             insertVals.append(self.mapInfo.key.String(key))
-
-            insertCols.append(self.mapInfo.value.name)
             insertVals.append(self.mapInfo.value.String(v))
 
-            insertCols += appendCols
-            insertVals += appendVals
-            insertSql = "INSERT INTO {}({}) VALUES ({});".format(
-                self.table, ",".join(insertCols), ",".join(insertVals)
-            )
-            # print(insertSql)
-            sqlList.append(insertSql)
-        return True, sqlList
+            self.Write(tableWriter, appendVals + insertVals)
+        return True
 
-    @loginfo
-    def insert_list(self, data, appendix=None):
-        sqlList = []
+    # @loginfo
+    def insert_list(self, tableWriter, data, appendix=None):
         if data is None or len(data) == 0:
-            return True, sqlList
+            return True
         for d in data:
-            ret, subSqls = self.insert_single(d, appendix)
-            sqlList += subSqls
+            ret = self.insert_single(tableWriter, d, appendix)
             if not ret:
-                return False, sqlList
-        return True, sqlList
+                return False
+        return True
 
-    @loginfo
-    def insert_single(self, data, appendix=None):
-        sqlList = []
-        insertCols = []
+    # @loginfo
+    def insert_single(self, tableWriter, data, appendix=None):
         insertVals = []
-        appendixLen = 0
-        if appendix:
-            for k, v in appendix.items():
-                appendixLen += 1
-                insertCols.append(k)
-                insertVals.append(v)
-        for col, oc in self.cols.items():
-            if oc.hasattr(data):
-                insertCols.append(col)
-                insertVals.append(oc.getattr(data))
+        for col in self.cols:
+            if col.FromAppend:
+                insertVals.append(appendix.get(col.name))
+            else:
+                insertVals.append(col.oc.getattr(data))
 
-        if len(insertCols) <= appendixLen:
-            logging.error("insertCols is null")
-            logging.error("data:\n{}\n".format(data))
-            return False, sqlList
-        insertSql = "INSERT INTO {}({}) VALUES ({});".format(
-            self.table, ",".join(insertCols), ",".join(insertVals)
-        )
-        sqlList.append(insertSql)
-        # print(insertSql)
+        self.Write(tableWriter, insertVals)
         if self.sType == "single" and self.subCols:
             for table, st in self.subCols.items():
                 if hasattr(data, st.colName):
@@ -534,6 +600,13 @@ class CommonParseAndInsert:
                     # logging.info("\n sub data:{}".format(subData))
                     # logging.info("sub data type:{}\n".format(type(subData)))
                     appendData = self.getAppendix(data, st.appendCols)
+                    if appendData is None or len(appendData) == 0:
+                        logger.error("table: ", table)
+                        logger.error("data: ", data)
+                        logger.error("data dir: ", dir(data))
+                        logger.error("st.appendCols: ", st.appendCols)
+                        logger.error("st.table: ", st.table)
+                        raise
                     # 建造类
                     # logging.info("\nCreate sub class: {}\n".format(table))
                     # logging.info("sub table: {}\n".format(st))
@@ -544,14 +617,17 @@ class CommonParseAndInsert:
                         mapInfo=st.mapInfo,
                         sType=st.sType,
                     )
-                    ret, subSqls = subClass.Insert(
+                    ret = subClass.Insert(
+                        tableWriter,
                         data=subData,
                         appendix=appendData,
                     )
-                    sqlList = sqlList + subSqls
                     if not ret:
-                        return False, sqlList
-        return True, sqlList
+                        return False
+        return True
+
+    def Write(self, writer, data):
+        writer.write(self.table, data)
 
     def getAppendix(self, data, appendix):
         if not appendix:
@@ -564,130 +640,156 @@ class CommonParseAndInsert:
         return appendData
 
 
-def getConn(config):
-    try:
-        conn = psycopg2.connect(
-            database=config["database"],
-            user=config["user"],
-            password=config["password"],
-            host=config["master"],
-            port=str(config["port"]),
-        )
-        return conn
-    except Exception as e:
-        logging.error("Conn hawq master failed!")
-        logging.error(e)
-        logging.error(traceback.format_exc())
-        conn = psycopg2.connect(
-            database=config["database"],
-            user=config["user"],
-            password=config["password"],
-            host=config["standby"],
-            port=str(config["port"]),
-        )
-        return conn
-
-
-def isNumeric(col_type):
-    return col_type in ["int", "bigint", "double precision"]
-
-
 def main():
-
-    # if len(os.Args) < 2:
-    #     logging.error(
-    #         "请输入account数据库位置",
-    #     )
-    # accountDB = plyvel.DB(os.Args[1])
-
     config, err = ConfigParser.Parse()
     if err is not None:
         logging.error("Failed to get hawq config: {}".format(err))
         exit(-1)
-    conn = getConn(config)
-    if not conn:
-        logging.error("Failed to connect hawq : {}".format(err))
-        exit(-1)
+    tableWriter = TableWriter(config)
+    start = datetime.datetime.now()
     try:
-        cur = conn.cursor()
-        accountDB = plyvel.DB("/data2/20210425/output-directory/database/account")
+        accountDB = plyvel.DB(config.get("input_dir"))
         # accountIt = accountDB.iterator()
         accInsert = CommonParseAndInsert(
-            cursor=cur,
+            cursor=tableWriter,
             cols=Account.cols,
             subCols=Account.subCols,
             table=Account.table,
         )
         count = 0
-        start = datetime.datetime.now()
+        acc = Tron_pb2.Account()
         for k, v in accountDB:
-            if count % 10000 == 0:
-                end = datetime.datetime.now()
-                logging.info(
-                    "已处理 {} 个账户，共耗时 {} 微秒".format(count, (end - start).microseconds)
-                )
-            acc = Tron_pb2.Account()
-            acc.ParseFromString(v)
-            ret, sqls = accInsert.Insert(acc)
-            # logging.info("sqls: {}".format(sqls))
-            if not ret or len(sqls) == 0:
-                logging.error("===================")
+            count += 1
+            try:
+                # if count < 180000:
+                #     continue
+                if count % 10000 == 0:
+                    tableWriter.flush()
+                    end = datetime.datetime.now()
+                    logging.info(
+                        "已处理 {} 个账户，共耗时 {} 微秒".format(count, (end - start).microseconds)
+                    )
+                acc.ParseFromString(v)
+                # if addressFromBytes(acc.address) not in [
+                #     # "TA7CEh4xHiY8kh28D6nyM2zVYKB8PSbZhh",
+                #     "T9yDMSrP8exVeYbBy7yFYnM5BNYbquSGRp",
+                # ]:
+                #     continue
+                ret = accInsert.Insert(tableWriter, acc)
+                if not ret:
+                    tableWriter.write(
+                        "error_account",
+                        [count, b2hs(acc.address), addressFromBytes(acc.address)],
+                    )
+                    logging.error("解析插入失败:\n address hex: {}".format(b2hs(acc.address)))
+                    logging.error(
+                        "解析插入失败:\n address: {}".format(addressFromBytes(acc.address))
+                    )
+            except Exception as e:
                 logging.error("解析插入失败:\n address hex: {}".format(b2hs(acc.address)))
                 logging.error(
                     "解析插入失败:\n address: {}".format(addressFromBytes(acc.address))
                 )
-                logging.error("===================\n\n\n")
-                continue
-            cur.execute("".join(sqls))
-            conn.commit()
-            count += 1
+                tableWriter.write(
+                    "error_account",
+                    [count, b2hs(acc.address), addressFromBytes(acc.address)],
+                )
+                logger.error("解析插入失败原因: {}".format(e))
     except Exception as e:
         traceback.print_exc()
         logging.error("Failed to run main: {}".format(e))
     finally:
-        try:
-            conn.rollback()
-        finally:
-            conn.close()
-
-
-def test():
-    config, err = ConfigParser.Parse()
-    if err is not None:
-        logging.error("Failed to get hawq config: {}".format(err))
-        exit(-1)
-    conn = getConn(config)
-    if not conn:
-        logging.error("Failed to connect hawq : {}".format(err))
-        exit(-1)
-    try:
-        cur = conn.cursor()
-        accountDB = plyvel.DB("/data2/20210425/output-directory/database/account")
-        # accountIt = accountDB.iterator()
-        accInsert = CommonParseAndInsert(
-            cursor=cur,
-            cols=Account.cols,
-            subCols=Account.subCols,
-            table=Account.table,
+        tableWriter.close()
+        end = datetime.datetime.now()
+        logging.info(
+            "共处理 {} 个账户，共耗时 {} 微秒, 平均单个耗时 {} 微秒".format(
+                count - 1,
+                (end - start).microseconds,
+                (end - start).microseconds / (count - 1),
+            )
         )
-        v = accountDB.get(bytes.fromhex("4100001f9ac7032955f71612dea92dc850ff3fa087"))
-        acc = Tron_pb2.Account()
-        acc.ParseFromString(v)
-        ret, sqls = accInsert.Insert(acc)
-        # logging.info("sqls: {}".format(sqls))
-        if not ret or len(sqls) == 0:
-            logging.error("===================")
-            logging.error("解析插入失败:\n address hex: {}".format(b2hs(acc.address)))
-            logging.error("解析插入失败:\n address: {}".format(addressFromBytes(acc.address)))
-            logging.error("===================\n\n\n")
-    except Exception as e:
-        traceback.print_exc()
-        logging.error("Failed to run main: {}".format(e))
-    finally:
+        logging.info(
+            "处理 30004228 个账户，预计用时 {} 小时".format(
+                (((30004228 / (count - 1)) * (end - start).microseconds))
+                / 1000000
+                / 3600
+            )
+        )
+        logging.info("开始时间: {}".format(start.strftime("%Y-%m-%d %H:%M:%S")))
+        logging.info("结束时间: {}".format(end.strftime("%Y-%m-%d %H:%M:%S")))
+
+
+class TableWriter:
+
+    init = False
+
+    # ouput folders
+    tables = [
+        "error_account",
+        "account",
+        "account_resource",
+        "account_votes",
+        "account_asset",
+        "account_asset_v2",
+        "account_latest_asset_operation_time",
+        "account_latest_asset_operation_time_v2",
+        "account_frozen",
+        "account_frozen_supply",
+        "account_free_asset_net_usage",
+        "account_free_asset_net_usage_v2",
+    ]
+
+    TableWriter = {}
+    FileHandler = {}
+
+    def __init__(self, config):
+        if self.init:
+            raise "TransWriter has been inited!"
+        self.config = config
         try:
-            conn.rollback()
-        finally:
-            conn.close()
+            self._initWriter()
+        except Exception as e:
+            self.close()
+            raise e
+
+    """
+    根据config中outputpath, 创建对应的表目录和以start-num和end-num的csv文件
+    打开追加写入的handler
+    """
+
+    def _initWriter(self):
+        for d in self.tables:
+            csv_path = path.join(
+                self.config["output_dir"],
+                "{}.csv".format(d),
+            )
+            if os.access(csv_path, os.F_OK):
+                logging.error("{} already exists!".format(csv_path))
+                raise "Failed to init writers: {}".format(
+                    "{} already exists!".format(csv_path)
+                )
+            f = open(csv_path, "w")
+            self.TableWriter[d] = csv.writer(f)
+            self.FileHandler[d] = f
+
+    def write(self, table, data):
+        self.TableWriter[table].writerow(data)
+
+    def close(self):
+        for t, w in self.FileHandler.items():
+            try:
+                w.close()
+            except Exception:
+                traceback.print_exc()
+                logging.error("Failed to close {}'s writer.".format(t))
+
+    def flush(self):
+        for _, w in self.FileHandler.items():
+            w.flush()
+
+    def refresh(self):
+        self.flush()
+        self.close()
 
 
 if "__main__" == __name__:
