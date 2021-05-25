@@ -1,17 +1,17 @@
-DROP TABLE IF EXISTS 
--- TRUNCATE TABLE
-error_account,
-account,
-account_resource,
-account_votes,
-account_asset,
-account_asset_v2,
-account_latest_asset_operation_time,
-account_latest_asset_operation_time_v2,
-account_frozen,
-account_frozen_supply,
-account_free_asset_net_usage,
-account_free_asset_net_usage_v2;
+-- DROP TABLE IF EXISTS 
+-- -- TRUNCATE TABLE
+-- error_account,
+-- account,
+-- account_resource,
+-- account_votes,
+-- account_asset,
+-- account_asset_v2,
+-- account_latest_asset_operation_time,
+-- account_latest_asset_operation_time_v2,
+-- account_frozen,
+-- account_frozen_supply,
+-- account_free_asset_net_usage,
+-- account_free_asset_net_usage_v2;
 
 CREATE TABLE error_account(
     account_index bigint,
@@ -87,7 +87,6 @@ CREATE TABLE account_latest_asset_operation_time_v2 (
     latest_opration_time bigint
 );
 
--- TODO:
 CREATE TABLE account_frozen (
     account_address text,
     frozen_balance bigint,
@@ -124,31 +123,56 @@ SELECT * FROM account_frozen_supply limit 5; --CHECKED
 SELECT * FROM account_free_asset_net_usage limit 5; --NODATA
 SELECT * FROM account_free_asset_net_usage_v2 limit 5; --CHECKED
 
-TRUNCATE TABLE
-error_account,
-account,
-account_resource,
-account_votes,
-account_asset,
-account_asset_v2,
-account_latest_asset_operation_time,
-account_latest_asset_operation_time_v2,
-account_frozen,
-account_frozen_supply,
-account_free_asset_net_usage,
-account_free_asset_net_usage_v2;
-COPY error_account FROM '/data2/20210425/account_parsed/error_account.csv' csv;
-COPY account FROM '/data2/20210425/account_parsed/account.csv' csv;
-COPY account_resource FROM '/data2/20210425/account_parsed/account_resource.csv' csv;
-COPY account_votes FROM '/data2/20210425/account_parsed/account_votes.csv' csv;
-COPY account_asset FROM '/data2/20210425/account_parsed/account_asset.csv' csv;
-COPY account_asset_v2 FROM '/data2/20210425/account_parsed/account_asset_v2.csv' csv;
-COPY account_latest_asset_operation_time FROM '/data2/20210425/account_parsed/account_latest_asset_operation_time.csv' csv;
-COPY account_latest_asset_operation_time_v2 FROM '/data2/20210425/account_parsed/account_latest_asset_operation_time_v2.csv' csv;
-COPY account_frozen FROM '/data2/20210425/account_parsed/account_frozen.csv' csv;
-COPY account_frozen_supply FROM '/data2/20210425/account_parsed/account_frozen_supply.csv' csv;
-COPY account_free_asset_net_usage FROM '/data2/20210425/account_parsed/account_free_asset_net_usage.csv' csv;
-COPY account_free_asset_net_usage_v2 FROM '/data2/20210425/account_parsed/account_free_asset_net_usage_v2.csv' csv;
+-- TRUNCATE TABLE
+-- error_account,
+-- account,
+-- account_resource,
+-- account_votes,
+-- account_asset,
+-- account_asset_v2,
+-- account_latest_asset_operation_time,
+-- account_latest_asset_operation_time_v2,
+-- account_frozen,
+-- account_frozen_supply,
+-- account_free_asset_net_usage,
+-- account_free_asset_net_usage_v2;
+-- COPY error_account FROM '/data2/20210425/account_parsed/error_account.csv' csv;
+-- COPY account FROM '/data2/20210425/account_parsed/account.csv' csv;
+-- COPY account_resource FROM '/data2/20210425/account_parsed/account_resource.csv' csv;
+-- COPY account_votes FROM '/data2/20210425/account_parsed/account_votes.csv' csv;
+-- COPY account_asset FROM '/data2/20210425/account_parsed/account_asset.csv' csv;
+-- COPY account_asset_v2 FROM '/data2/20210425/account_parsed/account_asset_v2.csv' csv;
+-- COPY account_latest_asset_operation_time FROM '/data2/20210425/account_parsed/account_latest_asset_operation_time.csv' csv;
+-- COPY account_latest_asset_operation_time_v2 FROM '/data2/20210425/account_parsed/account_latest_asset_operation_time_v2.csv' csv;
+-- COPY account_frozen FROM '/data2/20210425/account_parsed/account_frozen.csv' csv;
+-- COPY account_frozen_supply FROM '/data2/20210425/account_parsed/account_frozen_supply.csv' csv;
+-- COPY account_free_asset_net_usage FROM '/data2/20210425/account_parsed/account_free_asset_net_usage.csv' csv;
+-- COPY account_free_asset_net_usage_v2 FROM '/data2/20210425/account_parsed/account_free_asset_net_usage_v2.csv' csv;
+
+
+COPY error_account FROM '/DATA/tron/account_parsed/error_account.csv' csv;
+COPY account FROM '/DATA/tron/account_parsed/account.csv' csv;
+COPY account_resource FROM '/DATA/tron/account_parsed/account_resource.csv' csv;
+COPY account_votes FROM '/DATA/tron/account_parsed/account_votes.csv' csv;
+COPY account_asset FROM '/DATA/tron/account_parsed/account_asset.csv' csv;
+COPY account_asset_v2 FROM '/DATA/tron/account_parsed/account_asset_v2.csv' csv;
+COPY account_latest_asset_operation_time FROM '/DATA/tron/account_parsed/account_latest_asset_operation_time.csv' csv;
+COPY account_latest_asset_operation_time_v2 FROM '/DATA/tron/account_parsed/account_latest_asset_operation_time_v2.csv' csv;
+COPY account_frozen FROM '/DATA/tron/account_parsed/account_frozen.csv' csv;
+COPY account_frozen_supply FROM '/DATA/tron/account_parsed/account_frozen_supply.csv' csv;
+COPY account_free_asset_net_usage FROM '/DATA/tron/account_parsed/account_free_asset_net_usage.csv' csv;
+COPY account_free_asset_net_usage_v2 FROM '/DATA/tron/account_parsed/account_free_asset_net_usage_v2.csv' csv;
+SELECT * FROM account;
+SELECT * FROM account_resource; --CHECKED
+SELECT * FROM account_votes; --CHECKED
+SELECT * FROM account_asset; --CHECKED
+SELECT * FROM account_asset_v2; --CHECKED
+SELECT * FROM account_latest_asset_operation_time; --NODATA
+SELECT * FROM account_latest_asset_operation_time_v2; --CHECKED
+SELECT * FROM account_frozen; --CHECKED
+SELECT * FROM account_frozen_supply; --CHECKED
+SELECT * FROM account_free_asset_net_usage; --NODATA
+SELECT * FROM account_free_asset_net_usage_v2; --CHECKED
 
 
 SELECT 

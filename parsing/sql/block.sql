@@ -139,40 +139,46 @@ CREATE TABLE transfer_asset_contract( -- CHECKED
     to_address text,
     amount bigint
 ) format 'csv';
-CREATE TABLE vote_asset_contract( -- NODATA
-    trans_id text,
-    ret int,
-    bytes_hex text
-) format 'csv';
-CREATE TABLE vote_witness_contract( -- NODATA
-    trans_id text,
-    ret int,
-    bytes_hex text
-) format 'csv';
--- CREATE TABLE vote_asset_contract(
+-- CREATE TABLE vote_asset_contract( -- NODATA
 --     trans_id text,
 --     ret int,
---     provider text,
---     name text,
---     permission_id int,
---     -- more
---     owner_address text,
---     vote_address text, --csv格式存储多个vote_address
---     support boolean,
---     count int
+--     bytes_hex text
 -- ) format 'csv';
--- CREATE TABLE vote_witness_contract(
+-- CREATE TABLE vote_witness_contract( -- NODATA
 --     trans_id text,
 --     ret int,
---     provider text,
---     name text,
---     permission_id int,
---     -- more
---     owner_address text,
---     support boolean,
---     vote_address text,
---     vote_count bigint
+--     bytes_hex text
 -- ) format 'csv';
+CREATE TABLE vote_asset_contract_v1(
+    trans_id text,
+    ret int,
+    provider text,
+    name text,
+    permission_id int,
+    -- more
+    owner_address text,
+    support boolean,
+    count int
+) format 'csv';
+CREATE TABLE vote_asset_contract_vote_address_v1(
+    trans_id text,
+    vote_address text
+) format 'csv';
+CREATE TABLE vote_witness_contract_v1(
+    trans_id text,
+    ret int,
+    provider text,
+    name text,
+    permission_id int,
+    -- more
+    owner_address text,
+    support boolean
+) format 'csv';
+CREATE TABLE vote_witness_contract_votes_v1(
+    trans_id text,
+    vote_address text,
+    bote_account bigint
+) format 'csv';
 CREATE TABLE witness_create_contract( --CHECKED
     trans_id text,
     ret int,
@@ -302,10 +308,23 @@ CREATE TABLE update_asset_contract( --NODATA
     new_limit bigint,
     new_public_limit bigint
 ) format 'csv';
-CREATE TABLE proposal_create_contract( -- NODATA
+-- CREATE TABLE proposal_create_contract( -- NODATA
+--     trans_id text,
+--     ret int,
+--     bytes_hex text
+-- ) format 'csv';
+CREATE TABLE proposal_create_contract_v1(
     trans_id text,
     ret int,
-    bytes_hex text
+    provider text,
+    name text,
+    permission_id int,
+    -- more
+    owner_address text
+) format 'csv';
+CREATE TABLE proposal_create_contract_parameters_v1(
+    p_key bigint,
+    p_value bigint
 ) format 'csv';
 CREATE TABLE proposal_approve_contract( --NODATA
     trans_id text,
@@ -338,24 +357,67 @@ CREATE TABLE set_account_id_contract( -- NODATA
     owner_address text,
     account_id text
 ) format 'csv';
+CREATE TABLE create_smart_contract_v1(
+    trans_id text,
+    ret int,
+    provider text,
+    name text,
+    permission_id int,
+    -- more
+    owner_address text,
+    call_token_value bigint,
+    token_id bigint
+) format 'csv';
+
+CREATE TABLE create_smart_contract_content_v1(
+    trans_id text,
+    -- more
+    origin_address text,
+    contract_address text,
+    bytecode text,
+    call_value bigint,
+    consume_user_resource_percent bigint,
+    name text,
+    origin_energy_limit bigint,
+    code_hash text,
+    trx_hash text
+) format 'csv';
+CREATE TABLE create_smart_contract_content_abi_v1(
+    trans_id text,
+    -- more
+    anonymous boolean,
+    constant boolean,
+    name text,
+    type int,
+    payable boolean,
+    state_mutability int
+) format 'csv';
+
+
+CREATE TABLE create_smart_contract_content_abi_inputs_v1(
+    trans_id text,
+    entry_id int,
+    -- more
+    indexed boolean,
+    name text,
+    type text
+) format 'csv';
+
+
+CREATE TABLE create_smart_contract_content_abi_outputs_v1(
+    trans_id text,
+    entry_id int,
+    -- more
+    indexed boolean,
+    name text,
+    type text
+) format 'csv';
+
 -- CREATE TABLE create_smart_contract(
 --     trans_id text,
 --     ret int,
---     provider text,
---     name text,
---     permission_id int,
---     -- more
---     owner_address text,
---     -- SmartContract new_contract = 2;
---     contract_bytes text,
---     call_token_value bigint,
---     token_id bigint
+--     bytes_hex text
 -- ) format 'csv';
-CREATE TABLE create_smart_contract(
-    trans_id text,
-    ret int,
-    bytes_hex text
-) format 'csv';
 CREATE TABLE trigger_smart_contract( --CHECKED
     trans_id text,
     ret int,
@@ -442,10 +504,50 @@ CREATE TABLE update_energy_limit_contract( --CHECKED
     contract_address text,
     origin_energy_limit bigint
 ) format 'csv';
-CREATE TABLE account_permission_update_contract(
+-- CREATE TABLE account_permission_update_contract(
+--     trans_id text,
+--     ret int,
+--     bytes_hex text
+-- ) format 'csv';
+CREATE TABLE account_permission_update_contract_v1(
     trans_id text,
     ret int,
-    bytes_hex text
+    provider text,
+    name text,
+    permission_id int,
+    -- more
+    owner_address text,
+    owner_permission_type int,
+    owner_permission_id int,
+    owner_permission_name int,
+    owner_permission_threshold bigint,
+    owner_permission_parent_id int,
+    owner_permission_operations text,
+    owner_permission_type int,
+    owner_permission_id int,
+    owner_permission_name int,
+    owner_permission_threshold bigint,
+    owner_permission_parent_id int,
+    owner_permission_operations text
+) format 'csv';
+CREATE TABLE account_permission_update_contract_keys_v1(
+    trans_id text,
+    key_sign int, -- -1 :owner -2:witness 0+:index of actives
+    key_index bigint, -- index of keys
+    -- more
+    address text, -- TOCHECK
+    weight bigint
+) format 'csv';
+CREATE TABLE account_permission_update_contract_actives_v1(
+    trans_id text,
+    active_index bigint,
+    -- more
+    permission_type int,
+    permission_id int,
+    permission_name int,
+    permission_threshold bigint,
+    permission_parent_id int,
+    permission_operations text
 ) format 'csv';
 CREATE TABLE clear_abi_contract( --NODATA
     trans_id text,
@@ -467,21 +569,48 @@ CREATE TABLE update_brokerage_contract( --CHECKED
     owner_address text,
     brokerage int
 ) format 'csv';
-CREATE TABLE shielded_transfer_contract(
+-- CREATE TABLE shielded_transfer_contract(
+--     trans_id text,
+--     ret int,
+--     bytes_hex text
+--     -- provider text,
+--     -- name text,
+--     -- permission_id int,
+--     -- -- more
+--     -- transparent_from_address text,
+--     -- from_amount bigint,
+--     -- -- repeated SpendDescription spend_description = 3;
+--     -- -- repeated ReceiveDescription receive_description = 4;
+--     -- binding_signature text,
+--     -- transparent_to_address text,
+--     -- to_amount bigint
+-- ) format 'csv';
+
+
+CREATE TABLE shielded_transfer_contract_v1(
     trans_id text,
     ret int,
-    bytes_hex text
-    -- provider text,
-    -- name text,
-    -- permission_id int,
-    -- -- more
-    -- transparent_from_address text,
-    -- from_amount bigint,
-    -- -- repeated SpendDescription spend_description = 3;
-    -- -- repeated ReceiveDescription receive_description = 4;
-    -- binding_signature text,
-    -- transparent_to_address text,
-    -- to_amount bigint
+    provider text,
+    name text,
+    permission_id int,
+    -- more
+    transparent_from_address text,
+    from_amount bigint,
+    binding_signature text,
+    transparent_to_address text,
+    to_amount bigint,
+    spend_description_value_commitment text,
+    spend_description_anchor text,
+    spend_description_nullifier text,
+    spend_description_rk text,
+    spend_description_zkproof text,
+    spend_description_spend_authority_signature text,
+    receive_description_value_commitment text,
+    receive_description_note_commitment text,
+    receive_description_epk text,
+    receive_description_c_enc text,
+    receive_description_c_out text,
+    receive_description_zkproof text
 ) format 'csv';
 
 CREATE TABLE market_sell_asset_contract( --NODATA
