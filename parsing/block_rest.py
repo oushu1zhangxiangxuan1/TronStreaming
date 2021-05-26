@@ -21,20 +21,9 @@ import datetime
 import os
 from os import path
 
-from parsing import contract
-
-# import parsing.contract as contract
-
-# from parsing.contract import getContractParser
-
-# .getContractParser as getContractParser
+from parsing import contract_rest
 
 env.touch()
-# logging.basicConfig(level=logging.INFO)
-# logging.basicConfig(
-#     format="%(asctime)s.%(msecs)03d [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
-#     datefmt="## %Y-%m-%d %H:%M:%S",
-# )
 
 logging.getLogger().setLevel(logging.INFO)
 logger = logging.getLogger()
@@ -410,7 +399,9 @@ class BlockParser(BaseParser):
         for trans in data.transactions:
             transId = hashlib.sha256(trans.raw_data.SerializeToString()).hexdigest()
             transAppend["id"] = transId
-            transParser.Parse(writer, trans, transAppend)
+            ret = transParser.Parse(writer, trans, transAppend)
+            if not ret:
+                return False
         return True
 
 
@@ -558,15 +549,15 @@ class TransParser(BaseParser):
         # print("odAppend: ", odAppend)
 
         if data.raw_data.contract[0].type not in [
-            contract.ContractType.VoteAssetContract.value,
-            contract.ContractType.VoteWitnessContract.value,
-            contract.ContractType.ProposalCreateContract.value,
-            contract.ContractType.CreateSmartContract.value,
-            contract.ContractType.AccountPermissionUpdateContract.value,
+            contract_rest.ContractType.VoteAssetContract.value,
+            contract_rest.ContractType.VoteWitnessContract.value,
+            contract_rest.ContractType.ProposalCreateContract.value,
+            contract_rest.ContractType.CreateSmartContract.value,
+            contract_rest.ContractType.AccountPermissionUpdateContract.value,
         ]:
             return True
 
-        contractParser = contract.getContractParser(data.raw_data.contract[0].type)
+        contractParser = contract_rest.getContractParser(data.raw_data.contract[0].type)
 
         # if (
         #     data.raw_data.contract[0].type
@@ -594,9 +585,11 @@ class TransParser(BaseParser):
         except Exception as e:
             logger.error(
                 "Failed from contract type: {}, \nCause:\n{}".format(
-                    contract.contractTableMap.get(data.raw_data.contract[0].type), e
+                    contract_rest.contractTableMap.get(data.raw_data.contract[0].type),
+                    e,
                 )
             )
+            traceback.print_exc()
             return False
 
 
@@ -664,7 +657,7 @@ def main():
         blockDb = plyvel.DB(config.get("blockDb"))
         blockIndexDb = plyvel.DB(config.get("blockIndexDb"))
 
-        contract.initContractParser()
+        contract_rest.initContractParser()
         for i in range(config.get("start_num"), config.get("end_num")):
             try:
                 if count % 1000 == 0:

@@ -15,7 +15,7 @@ import parsing.core.contract.smart_contract_pb2 as smart_contract_pb2
 import parsing.core.contract.storage_contract_pb2 as storage_contract_pb2
 import parsing.core.contract.vote_asset_contract_pb2 as vote_asset_contract_pb2
 import parsing.core.contract.witness_contract_pb2 as witness_contract_pb2
-from parsing.block import (
+from parsing.block_rest import (
     BaseParser,
     ColumnIndex,
     OriginColumn,
@@ -109,41 +109,41 @@ contractTypeMap = {
 
 
 contractTableMap = {
-    ContractType.AccountCreateContract.value: "account_create_contract",
-    ContractType.TransferContract.value: "transfer_contract",
-    ContractType.TransferAssetContract.value: "transfer_asset_contract",
-    ContractType.VoteAssetContract.value: "vote_asset_contract",
-    ContractType.VoteWitnessContract.value: "vote_witness_contract",
-    ContractType.WitnessCreateContract.value: "witness_create_contract",
-    ContractType.AssetIssueContract.value: "asset_issue_contract",
-    ContractType.WitnessUpdateContract.value: "witness_update_contract",
-    ContractType.ParticipateAssetIssueContract.value: "participate_asset_issue_contract",
-    ContractType.AccountUpdateContract.value: "account_update_contract",
-    ContractType.FreezeBalanceContract.value: "freeze_balance_contract",
-    ContractType.UnfreezeBalanceContract.value: "unfreeze_balance_contract",
-    ContractType.WithdrawBalanceContract.value: "withdraw_balance_contract",
-    ContractType.UnfreezeAssetContract.value: "unfreeze_asset_contract",
-    ContractType.UpdateAssetContract.value: "update_asset_contract",
-    ContractType.ProposalCreateContract.value: "proposal_create_contract",
-    ContractType.ProposalApproveContract.value: "proposal_approve_contract",
-    ContractType.ProposalDeleteContract.value: "proposal_delete_contract",
-    ContractType.SetAccountIdContract.value: "set_account_id_contract",
+    ContractType.AccountCreateContract.value: "account_create_contract_v1",
+    ContractType.TransferContract.value: "transfer_contract_v1",
+    ContractType.TransferAssetContract.value: "transfer_asset_contract_v1",
+    ContractType.VoteAssetContract.value: "vote_asset_contract_v1",
+    ContractType.VoteWitnessContract.value: "vote_witness_contract_v1",
+    ContractType.WitnessCreateContract.value: "witness_create_contract_v1",
+    ContractType.AssetIssueContract.value: "asset_issue_contract_v1",
+    ContractType.WitnessUpdateContract.value: "witness_update_contract_v1",
+    ContractType.ParticipateAssetIssueContract.value: "participate_asset_issue_contract_v1",
+    ContractType.AccountUpdateContract.value: "account_update_contract_v1",
+    ContractType.FreezeBalanceContract.value: "freeze_balance_contract_v1",
+    ContractType.UnfreezeBalanceContract.value: "unfreeze_balance_contract_v1",
+    ContractType.WithdrawBalanceContract.value: "withdraw_balance_contract_v1",
+    ContractType.UnfreezeAssetContract.value: "unfreeze_asset_contract_v1",
+    ContractType.UpdateAssetContract.value: "update_asset_contract_v1",
+    ContractType.ProposalCreateContract.value: "proposal_create_contract_v1",
+    ContractType.ProposalApproveContract.value: "proposal_approve_contract_v1",
+    ContractType.ProposalDeleteContract.value: "proposal_delete_contract_v1",
+    ContractType.SetAccountIdContract.value: "set_account_id_contract_v1",
     # ContractType.CustomContract.value: .CustomContract,
-    ContractType.CreateSmartContract.value: "create_smart_contract",
-    ContractType.TriggerSmartContract.value: "trigger_smart_contract",
+    ContractType.CreateSmartContract.value: "create_smart_contract_v1",
+    ContractType.TriggerSmartContract.value: "trigger_smart_contract_v1",
     # ContractType.GetContract.value: .GetContract,
-    ContractType.UpdateSettingContract.value: "update_setting_contract",
-    ContractType.ExchangeCreateContract.value: "exchange_create_contract",
-    ContractType.ExchangeInjectContract.value: "exchange_inject_contract",
-    ContractType.ExchangeWithdrawContract.value: "exchange_withdraw_contract",
-    ContractType.ExchangeTransactionContract.value: "exchange_transaction_contract",
-    ContractType.UpdateEnergyLimitContract.value: "update_energy_limit_contract",
-    ContractType.AccountPermissionUpdateContract.value: "account_permission_update_contract",
-    ContractType.ClearABIContract.value: "clear_abi_contract",
-    ContractType.UpdateBrokerageContract.value: "update_brokerage_contract",
-    ContractType.ShieldedTransferContract.value: "shielded_transfer_contract",
-    ContractType.MarketSellAssetContract.value: "market_sell_asset_contract",
-    ContractType.MarketCancelOrderContract.value: "market_cancel_order_contract",
+    ContractType.UpdateSettingContract.value: "update_setting_contract_v1",
+    ContractType.ExchangeCreateContract.value: "exchange_create_contract_v1",
+    ContractType.ExchangeInjectContract.value: "exchange_inject_contract_v1",
+    ContractType.ExchangeWithdrawContract.value: "exchange_withdraw_contract_v1",
+    ContractType.ExchangeTransactionContract.value: "exchange_transaction_contract_v1",
+    ContractType.UpdateEnergyLimitContract.value: "update_energy_limit_contract_v1",
+    ContractType.AccountPermissionUpdateContract.value: "account_permission_update_contract_v1",
+    ContractType.ClearABIContract.value: "clear_abi_contract_v1",
+    ContractType.UpdateBrokerageContract.value: "update_brokerage_contract_v1",
+    ContractType.ShieldedTransferContract.value: "shielded_transfer_contract_v1",
+    ContractType.MarketSellAssetContract.value: "market_sell_asset_contract_v1",
+    ContractType.MarketCancelOrderContract.value: "market_cancel_order_contract_v1",
 }
 
 
@@ -200,7 +200,7 @@ class VoteAssetContractParser(ContractBaseParser):
 
         for addr in self.contract.vote_address:
             addr = addressFromBytes(addr)
-            writer.Write(
+            writer.write(
                 "vote_asset_contract_vote_address_v1", [appendData["trans_id"], addr]
             )
         return True
@@ -234,7 +234,7 @@ class VoteWitnessContractParser(ContractBaseParser):
 
         for vote in self.contract.votes:
             addr = addressFromBytes(vote.vote_address)
-            writer.Write(
+            writer.write(
                 "vote_witness_contract_votes_v1",
                 [appendData["trans_id"], addr, vote.vote_count],
             )
@@ -258,7 +258,7 @@ class ProposalCreateContractParser(ContractBaseParser):
         # 遍历parameters
         for key in self.contract.parameters:
             value = self.contract.parameters[key]
-            writer.Write(
+            writer.write(
                 "proposal_create_contract_parameters_v1",
                 [appendData["trans_id"], key, value],
             )
@@ -314,8 +314,9 @@ class create_smart_contractParser(ContractBaseParser):
         ret = super().Parse(writer, data, appendData)
         if not ret:
             return False
-        for i, entry in enumerate(self.contract.abi.entrys):
-            appendData["enrey_id"] = i
+        # logging.info("create smart contract: ", self.contract)
+        for i, entry in enumerate(self.contract.new_contract.abi.entrys):
+            appendData["entry_id"] = i
             ret = self.abiParser.Parse(writer, entry, appendData)
             if not ret:
                 return False
@@ -359,7 +360,7 @@ class create_smart_contract_abi_Parser(BaseParser):
 
         # 遍历parameters
         for param in data.inputs:
-            writer.Write(
+            writer.write(
                 "create_smart_contract_content_abi_inputs_v1",
                 [
                     appendData["trans_id"],
@@ -370,7 +371,7 @@ class create_smart_contract_abi_Parser(BaseParser):
                 ],
             )
         for param in data.outputs:
-            writer.Write(
+            writer.write(
                 "create_smart_contract_content_abi_outputs_v1",
                 [
                     appendData["trans_id"],
@@ -391,7 +392,7 @@ def _witnessWrapper(oc):
     return OriginColumn(name="witness", oc=oc)
 
 
-class account_permission_update_contract_Parser(BaseParser):
+class account_permission_update_contract_Parser(ContractBaseParser):
     colIndex = ContractBaseParser.colIndex + [
         ColumnIndex(
             name="owner_address",
