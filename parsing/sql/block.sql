@@ -368,12 +368,7 @@ CREATE TABLE create_smart_contract_v1(
     -- more
     owner_address text,
     call_token_value bigint,
-    token_id bigint
-) format 'csv';
-
-CREATE TABLE create_smart_contract_content_v1(
-    trans_id text,
-    -- more
+    token_id bigint,
     origin_address text,
     contract_address text,
     bytecode text,
@@ -384,7 +379,21 @@ CREATE TABLE create_smart_contract_content_v1(
     code_hash text,
     trx_hash text
 ) format 'csv';
-CREATE TABLE create_smart_contract_content_abi_v1(
+
+-- CREATE TABLE create_smart_contract_content_v1(
+--     trans_id text,
+--     -- more
+--     origin_address text,
+--     contract_address text,
+--     bytecode text,
+--     call_value bigint,
+--     consume_user_resource_percent bigint,
+--     name text,
+--     origin_energy_limit bigint,
+--     code_hash text,
+--     trx_hash text
+-- ) format 'csv';
+CREATE TABLE create_smart_contract_abi_v1(
     trans_id text,
     -- more
     anonymous boolean,
@@ -396,7 +405,7 @@ CREATE TABLE create_smart_contract_content_abi_v1(
 ) format 'csv';
 
 
-CREATE TABLE create_smart_contract_content_abi_inputs_v1(
+CREATE TABLE create_smart_contract_abi_inputs_v1(
     trans_id text,
     entry_id int,
     -- more
@@ -406,7 +415,7 @@ CREATE TABLE create_smart_contract_content_abi_inputs_v1(
 ) format 'csv';
 
 
-CREATE TABLE create_smart_contract_content_abi_outputs_v1(
+CREATE TABLE create_smart_contract_abi_outputs_v1(
     trans_id text,
     entry_id int,
     -- more
@@ -537,7 +546,8 @@ CREATE TABLE account_permission_update_contract_keys_v1(
     key_sign int, -- -1 :owner -2:witness 0+:index of actives
     key_index bigint, -- index of keys
     -- more
-    address text, -- TOCHECK
+    address text, -- by addressFromBytes
+    address_hex text, -- by bytes2HexStr
     weight bigint
 ) format 'csv';
 CREATE TABLE account_permission_update_contract_actives_v1(

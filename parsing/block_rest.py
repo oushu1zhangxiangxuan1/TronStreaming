@@ -77,7 +77,7 @@ def autoDecode(data):
             # except Exception as e:
             except Exception:
                 logger.error("Failed to decode: {}".format(data))
-                # raise e  # TODO: remove raise
+                # raise  # TODO: remove raise
                 return data
         else:
             return data
@@ -89,11 +89,13 @@ class TransWriter:
 
     # ouput folders
     tables = [
+        "err_trans_v1",
+        "trans_v1",
         #
         "create_smart_contract_v1",
-        "create_smart_contract_content_abi_v1",
-        "create_smart_contract_content_abi_inputs_v1",
-        "create_smart_contract_content_abi_outputs_v1",
+        "create_smart_contract_abi_v1",
+        "create_smart_contract_abi_inputs_v1",
+        "create_smart_contract_abi_outputs_v1",
         #
         "account_permission_update_contract_v1",
         "account_permission_update_contract_keys_v1",
@@ -109,6 +111,9 @@ class TransWriter:
         "vote_witness_contract_votes_v1",
         #
         "shielded_transfer_contract_v1",
+        #
+        "market_sell_asset_contract_v1",
+        "market_cancel_order_contract_v1",
     ]
 
     TableWriter = {}
@@ -401,6 +406,8 @@ class BlockParser(BaseParser):
             transAppend["id"] = transId
             ret = transParser.Parse(writer, trans, transAppend)
             if not ret:
+                # 记录trans,block
+                writer.write("err_trans_v1", [appendData["block_num"], transId])
                 return False
         return True
 
@@ -527,6 +534,7 @@ class TransParser(BaseParser):
     def Parse(self, writer, data, appendData):
         # super().Parse(writer, data, appendData)
         odAppend = {"trans_id": appendData["id"]}
+        writer.write("trans_v1", [appendData["block_num"], appendData["id"]])
 
         # if hasattr(data.ret, "orderDetails"):
         #     ods = getattr(data.raw_data, "orderDetails")

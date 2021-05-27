@@ -265,46 +265,72 @@ class ProposalCreateContractParser(ContractBaseParser):
         return True
 
 
+def _newContractWrapper(oc):
+    return OriginColumn(name="new_contract", oc=oc)
+
+
 class create_smart_contractParser(ContractBaseParser):
     def __init__(self):
         self.abiParser = create_smart_contract_abi_Parser()
 
     colIndex = ContractBaseParser.colIndex + [
         ColumnIndex(
+            name="owner_address",
+            oc=OriginColumn(name="owner_address", castFunc=addressFromBytes),
+        ),
+        ColumnIndex(
+            name="call_token_value",
+            oc=OriginColumn(name="call_token_value", colType="int64"),
+        ),
+        ColumnIndex(
+            name="token_id",
+            oc=OriginColumn(name="token_id", colType="int64"),
+        ),
+        ColumnIndex(
             name="origin_address",
-            oc=OriginColumn(name="origin_address", castFunc=addressFromBytes),
+            oc=_newContractWrapper(
+                OriginColumn(name="origin_address", castFunc=addressFromBytes)
+            ),
         ),
         ColumnIndex(
             name="contract_address",
-            oc=OriginColumn(name="contract_address", castFunc=addressFromBytes),
+            oc=_newContractWrapper(
+                OriginColumn(name="contract_address", castFunc=addressFromBytes)
+            ),
         ),
         ColumnIndex(
             name="bytecode",
-            oc=OriginColumn(name="bytecode", castFunc=autoDecode),
+            oc=_newContractWrapper(
+                OriginColumn(name="bytecode", castFunc=bytes2HexStr)
+            ),
         ),
         ColumnIndex(
             name="call_value",
-            oc=OriginColumn(name="call_value", colType="int64"),
+            oc=_newContractWrapper(OriginColumn(name="call_value", colType="int64")),
         ),
         ColumnIndex(
             name="consume_user_resource_percent",
-            oc=OriginColumn(name="consume_user_resource_percent", colType="int64"),
+            oc=_newContractWrapper(
+                OriginColumn(name="consume_user_resource_percent", colType="int64")
+            ),
         ),
         ColumnIndex(
             name="name",
-            oc=OriginColumn(name="name", colType="string"),
+            oc=_newContractWrapper(OriginColumn(name="name", colType="string")),
         ),
         ColumnIndex(
             name="origin_energy_limit",
-            oc=OriginColumn(name="origin_energy_limit", colType="int64"),
+            oc=_newContractWrapper(
+                OriginColumn(name="origin_energy_limit", colType="int64")
+            ),
         ),
         ColumnIndex(
             name="code_hash",
-            oc=OriginColumn(name="code_hash"),
+            oc=_newContractWrapper(OriginColumn(name="code_hash")),
         ),
         ColumnIndex(
             name="trx_hash",
-            oc=OriginColumn(name="trx_hash"),
+            oc=_newContractWrapper(OriginColumn(name="trx_hash")),
         ),
     ]
 
@@ -351,7 +377,7 @@ class create_smart_contract_abi_Parser(BaseParser):
         ),
     ]
 
-    table = "create_smart_contract_content_abi_v1"
+    table = "create_smart_contract_abi_v1"
 
     def Parse(self, writer, data, appendData):
         ret = super().Parse(writer, data, appendData)
@@ -361,7 +387,7 @@ class create_smart_contract_abi_Parser(BaseParser):
         # 遍历parameters
         for param in data.inputs:
             writer.write(
-                "create_smart_contract_content_abi_inputs_v1",
+                "create_smart_contract_abi_inputs_v1",
                 [
                     appendData["trans_id"],
                     appendData["entry_id"],
@@ -372,7 +398,7 @@ class create_smart_contract_abi_Parser(BaseParser):
             )
         for param in data.outputs:
             writer.write(
-                "create_smart_contract_content_abi_outputs_v1",
+                "create_smart_contract_abi_outputs_v1",
                 [
                     appendData["trans_id"],
                     appendData["entry_id"],
@@ -393,6 +419,9 @@ def _witnessWrapper(oc):
 
 
 class account_permission_update_contract_Parser(ContractBaseParser):
+    def __init__(self):
+        self.permissionParser = PermissionParser()
+
     colIndex = ContractBaseParser.colIndex + [
         ColumnIndex(
             name="owner_address",
@@ -472,7 +501,8 @@ class account_permission_update_contract_Parser(ContractBaseParser):
                     appendData["trans_id"],
                     -1,
                     i,
-                    autoDecode(key.address),  # TODO:check how to decode
+                    addressFromBytes(key.address),  # TODO:check how to decode
+                    bytes2HexStr(key.address),
                     key.weight,
                 ],
             )
@@ -483,7 +513,8 @@ class account_permission_update_contract_Parser(ContractBaseParser):
                     appendData["trans_id"],
                     0,
                     i,
-                    autoDecode(key.address),  # TODO:check how to decode
+                    addressFromBytes(key.address),  # TODO:check how to decode
+                    bytes2HexStr(key.address),
                     key.weight,
                 ],
             )
@@ -502,28 +533,28 @@ class PermissionParser(BaseParser):
         ),
         ColumnIndex(
             name="permission_type",
-            oc=_ownerWrapper(OriginColumn(name="type", colType="int")),
+            oc=OriginColumn(name="type", colType="int"),
         ),
         ColumnIndex(
             name="id",
-            oc=_ownerWrapper(OriginColumn(name="id", colType="int")),
+            oc=OriginColumn(name="id", colType="int"),
         ),
         ColumnIndex(
             name="permission_name",
-            oc=_ownerWrapper(OriginColumn(name="permission_name", colType="string")),
+            oc=OriginColumn(name="permission_name", colType="string"),
         ),
         ColumnIndex(
             name="threshold",
-            oc=_ownerWrapper(OriginColumn(name="threshold", colType="int64")),
+            oc=OriginColumn(name="threshold", colType="int64"),
         ),
         ColumnIndex(
             name="parent_id",
-            oc=_ownerWrapper(OriginColumn(name="parent_id", colType="int32")),
+            oc=OriginColumn(name="parent_id", colType="int32"),
         ),
         ColumnIndex(
             name="operations",
-            oc=_ownerWrapper(
-                OriginColumn(name="operations", colType="bytes")
+            oc=OriginColumn(
+                name="operations", colType="bytes"
             ),  # TODO: check how to decode
         ),
     ]
@@ -540,7 +571,8 @@ class PermissionParser(BaseParser):
                     appendData["trans_id"],
                     appendData["active_index"],
                     i,
-                    autoDecode(key.address),  # TODO:check how to decode
+                    addressFromBytes(key.address),  # TODO:check how to decode
+                    bytes2HexStr(key.address),
                     key.weight,
                 ],
             )
@@ -665,32 +697,44 @@ def getContractParser(contractType):
     return contractParserMap[contractType]
 
 
-class ContractRawParser(BaseParser):
-    colIndex = [
-        ColumnIndex(name="trans_id", fromAppend=True),
-        ColumnIndex(name="ret", fromAppend=True),
+class market_sell_asset_contractParser(ContractBaseParser):
+    colIndex = ContractBaseParser.colIndex + [
         ColumnIndex(
-            name="bytes_hex",
+            name="owner_address",
             oc=OriginColumn(name="owner_address", castFunc=addressFromBytes),
         ),
+        ColumnIndex(
+            name="sell_token_id",
+            oc=OriginColumn(name="sell_token_id", castFunc=autoDecode),  # TODO:type
+        ),
+        ColumnIndex(
+            name="sell_token_quantity",
+            oc=OriginColumn(name="sell_token_quantity", colType="int64"),
+        ),
+        ColumnIndex(
+            name="buy_token_id",
+            oc=OriginColumn(name="buy_token_id", castFunc=autoDecode),  # TODO:type
+        ),
+        ColumnIndex(
+            name="buy_token_quantity",
+            oc=OriginColumn(name="buy_token_quantity", colType="int64"),
+        ),
     ]
+    table = "market_sell_asset_contract_v1"
 
-    def __init__(self, table):
-        self.table = table
 
-    def Parse(self, writer, data, appendData):
-        if len(self.colIndex) == 0 or self.table is None:
-            logging.error("请勿直接调用抽象类方法，请实例化类并未对象变量赋值")
-            # raise
-            return False
-
-        vals = []
-        for col in self.colIndex:
-            if col.FromAppend:
-                vals.append(appendData[col.name])
-        vals.append(bytes2HexStr(data))  # TODO:how to decode
-        self.Write(writer, vals)
-        return True
+class market_cancel_order_contractParser(ContractBaseParser):
+    colIndex = ContractBaseParser.colIndex + [
+        ColumnIndex(
+            name="owner_address",
+            oc=OriginColumn(name="owner_address", castFunc=addressFromBytes),
+        ),
+        ColumnIndex(
+            name="order_id",
+            oc=OriginColumn(name="order_id", castFunc=autoDecode),  # TODO:type
+        ),
+    ]
+    table = "market_cancel_order_contract_v1"
 
 
 contractParserMap = {
@@ -700,23 +744,11 @@ contractParserMap = {
     ContractType.CreateSmartContract.value: create_smart_contractParser(),
     ContractType.AccountPermissionUpdateContract.value: account_permission_update_contract_Parser(),
     ContractType.ShieldedTransferContract.value: shiled_transfer_contract_Parser(),
+    ContractType.MarketSellAssetContract.value: market_sell_asset_contractParser(),
+    ContractType.MarketCancelOrderContract.value: market_cancel_order_contractParser(),
 }
 
 
 def initContractParser():
     for t, p in contractParserMap.items():
         setattr(p, "contract", getContract(t))
-
-
-# class market_cancel_order_contractParser(ContractBaseParser):
-#     colIndex = ContractBaseParser.colIndex + [
-#         ColumnIndex(
-#             name="owner_address",
-#             oc=OriginColumn(name="owner_address", castFunc=addressFromBytes),
-#         ),
-#         ColumnIndex(
-#             name="order_id",
-#             oc=OriginColumn(name="order_id", castFunc=autoDecode),  # TODO:type
-#         ),
-#     ]
-#     table = "market_cancel_order_contract"
