@@ -67,11 +67,7 @@ class Config:
 
         ok, err = CheckPathAccess(self.OutputDir)
         if not ok:
-            logging.error(
-                "Can not access OutputDir :%s, please check sync.yaml:%s",
-                self.LogPath,
-                self.cameras_file,
-            )
+            logging.error("Can not access OutputDir :%s", self.OutputDir)
             return False
 
         return True

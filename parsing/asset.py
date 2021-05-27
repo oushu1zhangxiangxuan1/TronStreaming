@@ -7,7 +7,8 @@ from Crypto.Util.number import bytes_to_long as b2l
 from Crypto.Util.number import long_to_bytes as l2b
 import binascii
 import tronapi
-import time
+import timee
+import chardet
 
 b2hs = binascii.hexlify
 
@@ -18,32 +19,25 @@ def addressFromHex(hex_str):
 
 def addressFromBytes(addr):
     return tronapi.common.account.Address().from_hex(bytes.decode(b2hs(addr)))
-    # 会遇到问题 UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb6 in position 3: invalid start byte
 
 
-# binascii.hexlify(k).decode('ascii')
-# bytearray.fromhex(id)
-# bytes.fromhex(str)
-# binascii.b2a_hex()
+assetDB = plyvel.DB("/data2/20210425/output-directory/database/asset-issue")
 
-accountDB = plyvel.DB("/data2/20210425/output-directory/database/account")
-
-accountIndexDB = plyvel.DB(
-    "/data2/20210425/output-directory/database/account-index"
-)  # account name to accountid
-accountIdIndexDB = plyvel.DB(
-    "/data2/20210425/output-directory/database/accountid-index"
-)
+assetV2DB = plyvel.DB("/data2/20210425/output-directory/database/asset-issue-v2")
 
 
-accountIT = accountDB.iterator()
-k, v = next(accountIT)
+assetIT = assetDB.iterator()
+k, v = next(assetIT)
 print(k)
 vs = binascii.hexlify(v)
 print(vs)
-acc = Tron_pb2.Account()
-acc.ParseFromString(v)
-acc
+
+
+assetV2IT = assetV2DB.iterator()
+k, v = next(assetV2IT)
+print(k.decode())
+enc = chardet.detect(v)
+print(v.decode(enc["encoding"]))
 
 
 accountIndexIT = accountIndexDB.iterator()
