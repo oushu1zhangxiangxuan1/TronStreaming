@@ -216,14 +216,6 @@ class VoteWitnessContractParser(ContractBaseParser):
             name="support",
             oc=OriginColumn(name="support", colType="bool"),
         ),
-        # ColumnIndex(
-        #     name="vote_address",
-        #     oc=OriginColumn(name="vote_address", castFunc=addressFromBytes),
-        # ),
-        ColumnIndex(
-            name="vote_count",
-            oc=OriginColumn(name="vote_count", colType="int"),
-        ),
     ]
     table = "vote_witness_contract_v1"
 
@@ -350,7 +342,11 @@ class create_smart_contractParser(ContractBaseParser):
 
 
 class create_smart_contract_abi_Parser(BaseParser):
-    colIndex = ContractBaseParser.colIndex + [
+    colIndex = [
+        ColumnIndex(
+            name="trans_id",
+            fromAppend=True,
+        ),
         ColumnIndex(
             name="anonymous",
             oc=OriginColumn(name="anonymous", colType="bool"),
