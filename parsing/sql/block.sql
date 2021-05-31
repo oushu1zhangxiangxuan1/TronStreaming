@@ -82,6 +82,7 @@ CREATE TABLE trans( -- TOCHECK:order_id, asset_issue_id
     order_id text,
     -- ret END--
     -- raw START
+    ref_block_bytes text,
     ref_block_num bigint,
     ref_block_hash text,
     expiration bigint,

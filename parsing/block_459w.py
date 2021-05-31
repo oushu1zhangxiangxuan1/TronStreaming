@@ -100,70 +100,43 @@ class TransWriter:
 
     # ouput folders
     tables = [
-        "err_trans_v1",
-        "block",
-        "trans",
-        "trans_market_order_detail",
-        "trans_auths",
-        "account_create_contract",
-        "transfer_contract",
-        "transfer_asset_contract",
+        # "block",
+        # "trans_250",
+        # "trans_market_order_detail",
+        # "trans_auths",
+        # "account_create_contract",
+        # "transfer_contract",
+        # "transfer_asset_contract",
         # "vote_asset_contract",
         # "vote_witness_contract",
-        "witness_create_contract",
-        "asset_issue_contract",
-        "asset_issue_contract_frozen_supply",
-        "witness_update_contract",
-        "participate_asset_issue_contract",
-        "account_update_contract",
-        "freeze_balance_contract",
-        "unfreeze_balance_contract",
-        "withdraw_balance_contract",
-        "unfreeze_asset_contract",
-        "update_asset_contract",
+        # "witness_create_contract",
+        # "asset_issue_contract",
+        # "asset_issue_contract_frozen_supply",
+        # "witness_update_contract",
+        # "participate_asset_issue_contract",
+        # "account_update_contract",
+        # "freeze_balance_contract",
+        # "unfreeze_balance_contract",
+        # "withdraw_balance_contract",
+        # "unfreeze_asset_contract",
+        # "update_asset_contract",
         # "proposal_create_contract",
-        "proposal_approve_contract",
-        "proposal_delete_contract",
-        "set_account_id_contract",
+        # "proposal_approve_contract",
+        # "proposal_delete_contract",
+        # "set_account_id_contract",
         # "create_smart_contract",
         "trigger_smart_contract",
-        "update_setting_contract",
-        "exchange_create_contract",
-        "exchange_inject_contract",
-        "exchange_withdraw_contract",
-        "exchange_transaction_contract",
-        "update_energy_limit_contract",
+        # "update_setting_contract",
+        # "exchange_create_contract",
+        # "exchange_inject_contract",
+        # "exchange_withdraw_contract",
+        # "exchange_transaction_contract",
+        # "update_energy_limit_contract",
         # "account_permission_update_contract",
-        "clear_abi_contract",
-        "update_brokerage_contract",
+        # "clear_abi_contract",
+        # "update_brokerage_contract",
         # "shielded_transfer_contract",
-        "error_block_num",
-        # V1
-        # "err_trans_v1",
-        # "trans_v1",
-        # #
-        # "create_smart_contract_v1",
-        # "create_smart_contract_abi_v1",
-        # "create_smart_contract_abi_inputs_v1",
-        # "create_smart_contract_abi_outputs_v1",
-        # #
-        # "account_permission_update_contract_v1",
-        # "account_permission_update_contract_keys_v1",
-        # "account_permission_update_contract_actives_v1",
-        # #
-        # "proposal_create_contract_v1",
-        # "proposal_create_contract_parameters_v1",
-        # #
-        # "vote_asset_contract_vote_address_v1",
-        # "vote_asset_contract_v1",
-        # #
-        # "vote_witness_contract_v1",
-        # "vote_witness_contract_votes_v1",
-        # #
-        # "shielded_transfer_contract_v1",
-        # #
-        # "market_sell_asset_contract_v1",
-        # "market_cancel_order_contract_v1",
+        # "error_block_num",
     ]
 
     TableWriter = {}
@@ -446,7 +419,7 @@ class BlockParser(BaseParser):
     table = "block"
 
     def Parse(self, writer, data, appendData):
-        super().Parse(writer, data, appendData)
+        # super().Parse(writer, data, appendData)
         transAppend = {
             "block_hash": appendData["hash"],
             "block_num": appendData["block_num"],
@@ -454,11 +427,7 @@ class BlockParser(BaseParser):
         for trans in data.transactions:
             transId = hashlib.sha256(trans.raw_data.SerializeToString()).hexdigest()
             transAppend["id"] = transId
-            ret = transParser.Parse(writer, trans, transAppend)
-            if not ret:
-                # 记录trans,block
-                writer.write("err_trans_v1", [appendData["block_num"], transId])
-                return False
+            transParser.Parse(writer, trans, transAppend)
         return True
 
 
@@ -542,10 +511,6 @@ class TransParser(BaseParser):
             oc=_retWrapper(OriginColumn(name="order_id", castFunc=autoDecode)),
         ),
         ColumnIndex(
-            name="ref_block_bytes",
-            oc=_rawDataWrapper(OriginColumn(name="ref_block_bytes")),
-        ),
-        ColumnIndex(
             name="ref_block_num",
             oc=_rawDataWrapper(OriginColumn(name="ref_block_num", colType="int64")),
         ),
@@ -567,13 +532,11 @@ class TransParser(BaseParser):
         ),
         ColumnIndex(
             name="scripts",
-            # oc=_rawDataWrapper(OriginColumn(name="scripts", castFunc=autoDecode)),
-            oc=_rawDataWrapper(OriginColumn(name="scripts")),
+            oc=_rawDataWrapper(OriginColumn(name="scripts", castFunc=autoDecode)),
         ),
         ColumnIndex(
             name="data",
-            # oc=_rawDataWrapper(OriginColumn(name="data", castFunc=autoDecode)),
-            oc=_rawDataWrapper(OriginColumn(name="data")),
+            oc=_rawDataWrapper(OriginColumn(name="data", castFunc=autoDecode)),
         ),
         ColumnIndex(
             name="signature",
@@ -585,10 +548,10 @@ class TransParser(BaseParser):
         ),
     ]
 
-    table = "trans"
+    table = "trans_250"
 
     def Parse(self, writer, data, appendData):
-        super().Parse(writer, data, appendData)
+        # return super().Parse(writer, data, appendData)
         odAppend = {"trans_id": appendData["id"]}
 
         if hasattr(data.ret, "orderDetails"):
@@ -600,20 +563,11 @@ class TransParser(BaseParser):
             auths = getattr(data.raw_data, "auths")
             for auth in auths:
                 AuthParser.Parse(writer, auth, odAppend)
-
-        # 过滤v1中解析的contract
-        if data.raw_data.contract[0].type in [
-            contract.ContractType.CreateSmartContract.value,
-            contract.ContractType.AccountPermissionUpdateContract.value,
-            contract.ContractType.ProposalCreateContract.value,
-            contract.ContractType.VoteAssetContract.value,
-            contract.ContractType.VoteWitnessContract.value,
-            contract.ContractType.ShieldedTransferContract.value,
-            contract.ContractType.MarketSellAssetContract.value,
-            contract.ContractType.MarketCancelOrderContract.value,
-        ]:
+        if (
+            contract.ContractType.TriggerSmartContract.value
+            != data.raw_data.contract[0].type
+        ):
             return True
-
         # 解析contract
         # logger.info("trans data: {}".format(data))
         odAppend["ret"] = None
@@ -650,6 +604,7 @@ class TransParser(BaseParser):
             #     return False
             return ret
         except Exception as e:
+            traceback.print_exc()
             logger.error(
                 "Failed from contract type: {}, \nCause:\n{}".format(
                     contract.contractTableMap.get(data.raw_data.contract[0].type), e

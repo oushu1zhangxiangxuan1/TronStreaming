@@ -906,7 +906,7 @@ contractParserMap = {
     ContractType.UnfreezeAssetContract.value: unfreeze_asset_contractParser(),
     ContractType.UpdateAssetContract.value: update_asset_contractParser(),
     ContractType.ProposalCreateContract.value: ContractRawParser(
-        "proposal_approve_contractParser"
+        "proposal_create_contract"
     ),
     ContractType.ProposalApproveContract.value: proposal_approve_contractParser(),
     ContractType.ProposalDeleteContract.value: proposal_delete_contractParser(),
