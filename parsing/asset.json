@@ -1,0 +1,6 @@
+{
+    "input_dir": "/data2/20210425/output-directory/database/asset-issue-v2",
+    "output_dir": "/data2/20210425/asset_v2_parsed",
+    "start_num": 0,
+    "end_num": 100
+}
