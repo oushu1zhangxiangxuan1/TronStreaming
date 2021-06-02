@@ -113,7 +113,7 @@ class AssetWriter:
                     "{} already exists!".format(csv_path)
                 )
             f = open(csv_path, "w")
-            self.TableWriter[d] = csv.writer(f)
+            self.TableWriter[d] = csv.writer(f, delimiter="|", quoting=csv.QUOTE_ALL)
             self.FileHandler[d] = f
 
     def write(self, table, data):
@@ -147,79 +147,80 @@ class AssetIssueV2Parser(BaseParser):
                 name="id", colType="string"
             ),  # TODO: check id not null and unique after decode
         ),
-        ColumnIndex(
-            name="owner_address",
-            oc=OriginColumn(name="owner_address", castFunc=addressFromBytes),
-        ),
+        # ColumnIndex(
+        #     name="owner_address",
+        #     oc=OriginColumn(name="owner_address", castFunc=addressFromBytes),
+        # ),
         ColumnIndex(
             name="name",
             oc=OriginColumn(name="name", castFunc=autoDecode),
         ),
-        ColumnIndex(
-            name="abbr",
-            oc=OriginColumn(name="abbr", castFunc=autoDecode),
-        ),
-        ColumnIndex(
-            name="total_supply",
-            oc=OriginColumn(name="total_supply", colType="int64"),
-        ),
-        ColumnIndex(
-            name="trx_num",
-            oc=OriginColumn(name="trx_num", colType="int32"),
-        ),
-        ColumnIndex(
-            name="precision",
-            oc=OriginColumn(name="precision", colType="int32"),
-        ),
-        ColumnIndex(
-            name="num",
-            oc=OriginColumn(name="num", colType="int32"),
-        ),
-        ColumnIndex(
-            name="start_time",
-            oc=OriginColumn(name="start_time", colType="int64"),
-        ),
-        ColumnIndex(
-            name="end_time",
-            oc=OriginColumn(name="end_time", colType="int64"),
-        ),
-        ColumnIndex(
-            name="order_",
-            oc=OriginColumn(name="order", colType="int64"),
-        ),
-        ColumnIndex(
-            name="vote_score",
-            oc=OriginColumn(name="account_address", colType="int32"),
-        ),
-        ColumnIndex(
-            name="description",
-            oc=OriginColumn(name="description", castFunc=autoDecode),
-        ),
-        ColumnIndex(
-            name="url",
-            oc=OriginColumn(name="url", castFunc=autoDecode),
-        ),
-        ColumnIndex(
-            name="free_asset_net_limit",
-            oc=OriginColumn(name="free_asset_net_limit", colType="int64"),
-        ),
-        ColumnIndex(
-            name="public_free_asset_net_limit",
-            oc=OriginColumn(name="public_free_asset_net_limit", colType="int64"),
-        ),
-        ColumnIndex(
-            name="public_free_asset_net_usage",
-            oc=OriginColumn(name="public_free_asset_net_usage", colType="int64"),
-        ),
-        ColumnIndex(
-            name="public_latest_free_net_time",
-            oc=OriginColumn(name="public_latest_free_net_time", colType="int64"),
-        ),
+        # ColumnIndex(
+        #     name="abbr",
+        #     oc=OriginColumn(name="abbr", castFunc=autoDecode),
+        # ),
+        # ColumnIndex(
+        #     name="total_supply",
+        #     oc=OriginColumn(name="total_supply", colType="int64"),
+        # ),
+        # ColumnIndex(
+        #     name="trx_num",
+        #     oc=OriginColumn(name="trx_num", colType="int32"),
+        # ),
+        # ColumnIndex(
+        #     name="precision",
+        #     oc=OriginColumn(name="precision", colType="int32"),
+        # ),
+        # ColumnIndex(
+        #     name="num",
+        #     oc=OriginColumn(name="num", colType="int32"),
+        # ),
+        # ColumnIndex(
+        #     name="start_time",
+        #     oc=OriginColumn(name="start_time", colType="int64"),
+        # ),
+        # ColumnIndex(
+        #     name="end_time",
+        #     oc=OriginColumn(name="end_time", colType="int64"),
+        # ),
+        # ColumnIndex(
+        #     name="order_",
+        #     oc=OriginColumn(name="order", colType="int64"),
+        # ),
+        # ColumnIndex(
+        #     name="vote_score",
+        #     oc=OriginColumn(name="account_address", colType="int32"),
+        # ),
+        # ColumnIndex(
+        #     name="description",
+        #     oc=OriginColumn(name="description", castFunc=autoDecode),
+        # ),
+        # ColumnIndex(
+        #     name="url",
+        #     oc=OriginColumn(name="url", castFunc=autoDecode),
+        # ),
+        # ColumnIndex(
+        #     name="free_asset_net_limit",
+        #     oc=OriginColumn(name="free_asset_net_limit", colType="int64"),
+        # ),
+        # ColumnIndex(
+        #     name="public_free_asset_net_limit",
+        #     oc=OriginColumn(name="public_free_asset_net_limit", colType="int64"),
+        # ),
+        # ColumnIndex(
+        #     name="public_free_asset_net_usage",
+        #     oc=OriginColumn(name="public_free_asset_net_usage", colType="int64"),
+        # ),
+        # ColumnIndex(
+        #     name="public_latest_free_net_time",
+        #     oc=OriginColumn(name="public_latest_free_net_time", colType="int64"),
+        # ),
     ]
     table = "asset_issue_v2"
 
     def Parse(self, writer, data, appendData):
         ret = super().Parse(writer, data, appendData)
+        return ret
         if not ret:
             return False
         frozenAppend = {
@@ -278,6 +279,7 @@ def main():
         # for i in range(config.get("start_num"), config.get("end_num")):
         assetIssueV2Parser = AssetIssueV2Parser()
         for k, v in assetV2DB:
+            count += 1
             try:
                 if count % 1000 == 0:
                     end = datetime.datetime.now()
@@ -289,13 +291,22 @@ def main():
                         )
                     )
                     assetWriter.flush()
+                # if k.decode() not in [
+                #     "1000436",
+                #     "1004368",
+                #     "1000329",
+                #     "1000370",
+                #     "1000371",
+                #     "1000322",
+                #     "1000373",
+                # ]:
+                #     return
                 aic = asset_issue_contract_pb2.AssetIssueContract()
                 aic.ParseFromString(v)
                 ret = assetIssueV2Parser.Parse(assetWriter, aic, None)
                 if not ret:
                     logging.error("Failed to parse asset id: {}".format(k.decode()))
                     break
-                count += 1
             except Exception:
                 logging.error("Failed to parse asset id: {}".format(k.decode()))
                 traceback.print_exc()

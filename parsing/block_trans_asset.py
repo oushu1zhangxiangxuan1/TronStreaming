@@ -125,7 +125,8 @@ class TransWriter:
     def _initWriter(self):
         for d in self.tables:
             table_dir = path.join(self.config["output_dir"], d)
-            os.makedirs(table_dir)
+            if not os.path.isdir(table_dir):
+                os.makedirs(table_dir)
             csv_path = path.join(
                 table_dir,
                 "{}-{}.csv".format(self.config["start_num"], self.config["end_num"]),
@@ -394,7 +395,7 @@ class BlockParser(BaseParser):
                 # contract.ContractType.AssetIssueContract.value,
                 contract.ContractType.TransferAssetContract.value,
             ]:
-                return True
+                continue
             transId = hashlib.sha256(trans.raw_data.SerializeToString()).hexdigest()
             transAppend["id"] = transId
             ret = transParser.Parse(writer, trans, transAppend)
@@ -534,34 +535,34 @@ class TransParser(BaseParser):
         # super().Parse(writer, data, appendData)
         odAppend = {"trans_id": appendData["id"]}
 
-        if hasattr(data.ret, "orderDetails"):
-            ods = getattr(data.raw_data, "orderDetails")
-            for od in ods:
-                OrderDetailParser.Parse(writer, od, odAppend)
+        # if hasattr(data.ret, "orderDetails"):
+        #     ods = getattr(data.raw_data, "orderDetails")
+        #     for od in ods:
+        #         OrderDetailParser.Parse(writer, od, odAppend)
 
-        if hasattr(data.raw_data, "auths"):
-            auths = getattr(data.raw_data, "auths")
-            for auth in auths:
-                AuthParser.Parse(writer, auth, odAppend)
+        # if hasattr(data.raw_data, "auths"):
+        #     auths = getattr(data.raw_data, "auths")
+        #     for auth in auths:
+        #         AuthParser.Parse(writer, auth, odAppend)
 
-            # 过滤v1中解析的contract
-            # if data.raw_data.contract[0].type in [
-            #     contract.ContractType.CreateSmartContract.value,
-            #     contract.ContractType.AccountPermissionUpdateContract.value,
-            #     contract.ContractType.ProposalCreateContract.value,
-            #     contract.ContractType.VoteAssetContract.value,
-            #     contract.ContractType.VoteWitnessContract.value,
-            #     contract.ContractType.ShieldedTransferContract.value,
-            #     contract.ContractType.MarketSellAssetContract.value,
-            #     contract.ContractType.MarketCancelOrderContract.value,
-            # ]:
-            #     return True
+        # 过滤v1中解析的contract
+        # if data.raw_data.contract[0].type in [
+        #     contract.ContractType.CreateSmartContract.value,
+        #     contract.ContractType.AccountPermissionUpdateContract.value,
+        #     contract.ContractType.ProposalCreateContract.value,
+        #     contract.ContractType.VoteAssetContract.value,
+        #     contract.ContractType.VoteWitnessContract.value,
+        #     contract.ContractType.ShieldedTransferContract.value,
+        #     contract.ContractType.MarketSellAssetContract.value,
+        #     contract.ContractType.MarketCancelOrderContract.value,
+        # ]:
+        #     return True
 
-            # if data.raw_data.contract[0].type not in [
-            #     # contract.ContractType.AssetIssueContract.value,
-            #     contract.ContractType.TransferAssetContract.value,
-            # ]:
-            return True
+        # if data.raw_data.contract[0].type not in [
+        #     # contract.ContractType.AssetIssueContract.value,
+        #     contract.ContractType.TransferAssetContract.value,
+        # ]:
+        # return True
 
         # 解析contract
         # logger.info("trans data: {}".format(data))
