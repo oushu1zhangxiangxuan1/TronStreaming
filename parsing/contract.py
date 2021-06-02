@@ -231,8 +231,8 @@ class TransferAssetContractParser(ContractBaseParser):
             oc=OriginColumn(name="to_address", castFunc=addressFromBytes),
         ),
         ColumnIndex(
-            name="account_type",
-            oc=OriginColumn(name="account_type", colType="int"),
+            name="amount",
+            oc=OriginColumn(name="amount", colType="int"),
         ),
     ]
     table = "transfer_asset_contract"
