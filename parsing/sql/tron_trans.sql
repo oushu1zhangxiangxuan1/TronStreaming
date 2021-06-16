@@ -4,6 +4,7 @@ CREATE TABLE tron_trans(
     block_num bigint, -- 所在区块号
     trans_time timestamp, -- 交易时间
     trans_type text, -- trc10,20或者asset_name,
+    trans_result text, -- 交易结果 NULL:成功，其它: SUCESS = 0;FAILED = 1;
     from_address text, --来源地址
     to_address text, -- 去向地址
     amount bigint -- 交易量
@@ -15,6 +16,10 @@ SELECT
     b.block_num AS block_num,
     to_timestamp(b.trans_time) AS trans_time,
     'TRC-10' AS trans_type,
+    CASE 
+        WHEN a.ret IN (NULL, 0) THEN '成功'
+        ELSE '失败'
+    END AS trans_result,
     a.owner_address as from_address,
     a.to_address as to_address,
     a.amount as amount
@@ -32,6 +37,10 @@ SELECT
     b.block_num AS block_num,
     to_timestamp(b.trans_time) AS trans_time,
     a.asset_name AS trans_type, -- TODO: 查看内部数数字还是真实的asset_name
+    CASE 
+        WHEN a.ret IN (NULL, 0) THEN '成功'
+        ELSE '失败'
+    END AS trans_result,
     a.owner_address as from_address,
     a.to_address as to_address,
     a.amount as amount

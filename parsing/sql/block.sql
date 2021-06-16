@@ -375,7 +375,7 @@ CREATE TABLE create_smart_contract_v1(
     bytecode text,
     call_value bigint,
     consume_user_resource_percent bigint,
-    name text,
+    name_contract text,
     origin_energy_limit bigint,
     code_hash text,
     trx_hash text
@@ -531,16 +531,16 @@ CREATE TABLE account_permission_update_contract_v1(
     owner_address text,
     owner_permission_type int,
     owner_permission_id int,
-    owner_permission_name int,
+    owner_permission_name text,
     owner_permission_threshold bigint,
     owner_permission_parent_id int,
     owner_permission_operations text,
-    owner_permission_type int,
-    owner_permission_id int,
-    owner_permission_name int,
-    owner_permission_threshold bigint,
-    owner_permission_parent_id int,
-    owner_permission_operations text
+    witness_permission_type int,
+    witness_permission_id int,
+    witness_permission_name text,
+    witness_permission_threshold bigint,
+    witness_permission_parent_id int,
+    witness_permission_operations text
 ) format 'csv';
 CREATE TABLE account_permission_update_contract_keys_v1(
     trans_id text,

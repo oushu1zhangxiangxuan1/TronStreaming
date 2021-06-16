@@ -7,7 +7,9 @@ Interval: 5
 # output: result dir 默认当前目录 如果已存在对应block文件，则直接覆盖，最好写直接路径
 # interval: 轮询时间，单位秒，默认10
 
-Host: localhost
-Port: 4432
-User: gpadmin
-Database: postgres
+Master: localhost
+Standby: localhost
+Port: 4433
+User: oushu
+Database: tron
+Password: lavaadmin

@@ -1,0 +1,44 @@
+ 0xb64ef51c888972c908cfacf59b47c1afbc0ab8ac Storj Token
+ 0xd19141a9b74f7a02cc2b4919039f2961e988732f -- 进多出少，个别交易下游是火币池，给火币池的都是大额
+ 0x1ff41b4d3db633f91cfa29d4bf8cff8903edefe2 -- 下游大部分是火币池，可以认定为火币池地址，且以此为线索可找出四个高度疑似火币池地址，池子之间交易大多为1099eth
+ 0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0 EOS: Old Token
+ 0xd26114cd6ee289accf82350c8d8487fedb8a0c07 OMG Network: OMG Token
+ 0xf5613e4da78cee6a1bffdf9c235d56bbf6d01d8d -- 进少出多，个别交易下游是火币池，给火币池的都是大额
+ 0x39d9f4640b98189540a9c0edcfa95c5e657706aa -- 交易量超大（27w），上下游都有火币池，与火币池的交易金额较大
+ 0x86e6df2933f88a00caa11ad19413123c3abef3de -- 进少出多，个别交易下游是火币池，给火币池的都是大额
+ 0x3c979fb790c86e361738ed17588c1e8b4c4cc49a -- 进多出少，交易量和余额都超大
+ 0xe21bc8d4f47dbd9e4dd29229333d1999c33d0e87 -- 进少出多，个别交易下游是火币池，给火币池的都是大额
+ 0x27e9f4748a2eb776be193a1f7dec2bb6daafe9cf -- 交易量超大（27w），入账交易都在1eth左右
+ 0xf726dc178d1a4d9292a8d63f01e0fa0a1235e65c -- 交易量超大（18w），出账占绝大部分
+ 0x58c2cb4a6bee98c309215d0d2a38d7f8aa71211c -- 交易量超大（27w），入账交易都在1eth左右
+ 0xeb574cd5a407fefa5610fcde6aec13d983ba527c -- 下游部分火币池，可以认定火币池，18年后已无交易
+ 0x8d328ef333645115937f2bcfd6bcfa73b532630d -- 下游部分火币池，可以认定火币池
+ 0x8d9cc1d96cc7f98b73fb9c70df1b2f50daec6166 -- 下游全是火币池，可以认定火币池
+ 0x99ab46812d1e6d2bfbb7a337418da10b15aa159f -- 进少出多，个别交易下游是火币池，给火币池的都是大额
+ 0xda92c68565b6f8b4ee5ce619fabd880f6e485604 -- 进少出多，个别交易下游是火币池，给火币池的都是大额
+ 0xde7286bd7e0b25fb9f425b01a013ac85cf473408 -- 进多出少，个别交易下游是火币池，给火币池的都是大额
+ 0xcc555bd1d5359f2fc4fcc3302018386aec2c4171 -- 进多出少，个别交易下游是火币池，给火币池的都是大额
+ 0xd897fe50cc3f57ddea02c8c21d5ff3eb03387310 -- 上游有huobi池地址，下游很多地址，像是专门用来提币的
+ 0xc9610be2843f1618edfedd0860dc43551c727061 -- TODO: 查其不同的out和不同的in有多少个
+ 0x4ce9f39d3a0426d8d1f2ad4fcff0b92e86b9b914 -- 下游全是火币池，可以认定火币池
+
+
+
+
+
+
+ -- FROM 0x1ff41b4d3db633f91cfa29d4bf8cff8903edefe2
+0x82ab4851dcc3e6f18c9e904e86aefedb13576cfe
+0x3b0e20b3bea1fd1e24dfbbc9d3fcafd30fde8ff8
+0x42dc966b7ecc3c6cc73e7bc04862859d5bddce65
+0xf881bcb3705926cea9c598ab05a837cf41a833a9
+
+-- 此地址多次从上面的高度疑似资金池中提取了1000ETH
+https://etherscan.io/txs?a=0xa7df6b8772da7c4992c426eef8ee54033bc9b815&f=3
+
+
+-- 低度疑似地址
+https://etherscan.io/txs?a=0xf881bcb3705926cea9c598ab05a837cf41a833a9&f=3
+
+-- 上游有许多都是火币池地址，且交易都为3998，余额较大，最近较活跃
+https://etherscan.io/txs?a=0xd897fe50cc3f57ddea02c8c21d5ff3eb03387310&f=3

@@ -12,9 +12,6 @@ from streaming.util.utils import CheckPathAccess
 env.touch()
 
 
-basic: str = "./conf/basic.yaml"
-cameras: str = "./conf/cameras.yaml"
-
 logging.basicConfig(level=logging.INFO)
 
 
