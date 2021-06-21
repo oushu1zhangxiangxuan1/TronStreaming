@@ -62,17 +62,30 @@ blockDB = plyvel.DB("/data2/20210425/output-directory/database/block")
 # 1677540f2bbb3395bc8ae775952895794cb53a399a016ff41185679c532f4c12
 
 
-i = blockIndexDB.get(num2Bytes(29024957))
+# i = blockIndexDB.get(num2Bytes(29024957))
 # check trans scripts
 # 92b75356ffb6d660af4c37e842dbd0aa58d7accdc858b0a9c6b647dc9be36014
 
 # 0000000001c3ece19dbc80547e9ede5d4613fd4ea5f90e154afef6f0388ac3f0
+
+# i = blockIndexDB.get(num2Bytes(28519316))
+# check trans time is 0 and why
+# 783b564cedaf323c8dc955cd2c4a9cb00e14a1dc5df784ceacc2c1e1e96f2576
+
+
+# i = blockIndexDB.get(num2Bytes(3111682))
+# check create_smart_contract contract_address is null? --yes
+# 783b564cedaf323c8dc955cd2c4a9cb00e14a1dc5df784ceacc2c1e1e96f2576
+
+i = blockIndexDB.get(num2Bytes(25800508))
+# check create_smart_contract contract_address is null? --yes
+# 3402ec2c2af50568c582c367005bc7bb201d42d6fa70519033991d95200065c1
 blk = blockDB.get(i)
 blkIns = Tron_pb2.Block()
 blkIns.ParseFromString(blk)
 
 
-tid = "92b75356ffb6d660af4c37e842dbd0aa58d7accdc858b0a9c6b647dc9be36014"
+tid = "3402ec2c2af50568c582c367005bc7bb201d42d6fa70519033991d95200065c1"
 t = None
 
 for i in blkIns.transactions:
@@ -83,6 +96,24 @@ import core.contract.exchange_contract_pb2 as exchange_contract_pb2
 
 c = exchange_contract_pb2.ExchangeTransactionContract()
 c.ParseFromString(t.raw_data.contract[0].parameter.value)
+
+
+import core.contract.smart_contract_pb2 as smart_contract
+
+c = smart_contract.CreateSmartContract()
+c.ParseFromString(t.raw_data.contract[0].parameter.value)
+
+
+import core.contract.smart_contract_pb2 as smart_contract
+
+c = smart_contract.TriggerSmartContract()
+c.ParseFromString(t.raw_data.contract[0].parameter.value)
+
+it = Tron_pb2.InternalTransaction()
+it.ParseFromString(c.data)
+
+sc = smart_contract.SmartContract()
+sc.ParseFromString(c.data)
 
 
 def getTrans(tid):

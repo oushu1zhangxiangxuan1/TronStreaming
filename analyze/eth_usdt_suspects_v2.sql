@@ -86,8 +86,17 @@ trans_counts_all AS (
 	GROUP BY to1 
 )
 SELECT 
-    a.to1, count(tx_date) AS date_count, tx_cnt AS "转币次数",  MAX_DATE, MIN_DATE, amount, is_contract, b.cnt
-	INTO okex_bithumb_v2_with_new	
+    a.to1, -- 境外交易所过渡账户地址
+    'okex' AS from_exchange, -- from哪个国内交易所
+    'bithumb' AS from_exchange, -- to哪个国外交易所
+    count(tx_date) AS date_count,
+    tx_cnt AS "转币次数",  
+    MAX_DATE, 
+    MIN_DATE, 
+    amount, 
+    is_contract, 
+    b.cnt
+	INTO suspects_all	
 FROM 
  trans_date_unique a
  JOIN

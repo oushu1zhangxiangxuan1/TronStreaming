@@ -1,0 +1,6 @@
+{
+    "input_dir": "/data2/20210425/output-directory/database/transactionRetStore",
+    "output_dir": "/data2/20210425/trans_ret_parsed",
+    "start_num": 11015604,
+    "end_num": 11115604
+}

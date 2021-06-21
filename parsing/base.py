@@ -73,7 +73,7 @@ class BaseParser:
     colIndex = []
     table = None
 
-    def Parse(self, writer, data, appendData):
+    def Parse(self, writer, data, appendData=None):
         if len(self.colIndex) == 0 or self.table is None:
             logging.error("请勿直接调用抽象类方法，请实例化类并未对象变量赋值")
             return False
