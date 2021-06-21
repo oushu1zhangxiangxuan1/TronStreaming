@@ -321,7 +321,9 @@ class TransWriter:
     def _initWriter(self):
         for d in self.tables:
             table_dir = path.join(self.config["output_dir"], d)
-            os.makedirs(table_dir)
+            ok, _ = CheckPathAccess(table_dir)
+            if not ok:
+                os.makedirs(table_dir)
             csv_path = path.join(
                 table_dir,
                 "{}-{}.csv".format(self.config["start_num"], self.config["end_num"]),
