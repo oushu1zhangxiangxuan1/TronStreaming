@@ -26,7 +26,9 @@ transHisStore = plyvel.DB(
     "/data2/20210425/output-directory/database/transactionHistoryStore"
 )
 transHisIt = transHisStore.iterator()
-
+k, v = transHisStore.get(
+    bytes.fromhex("06dcdfb14392f12350a0f7959f2e3879875077b381925f3edf69493938010bf8")
+)
 k, v = next(transHisIt)
 print(k)
 print(v)

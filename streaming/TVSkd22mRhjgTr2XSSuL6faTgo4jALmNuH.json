@@ -1,0 +1,119 @@
+{
+    "entrys": [
+        {
+            "inputs": [
+                {
+                    "name": "_addrBetMoon",
+                    "type": "address"
+                },
+                {
+                    "name": "_addrBetPool",
+                    "type": "address"
+                }
+            ],
+            "name": "setInterface",
+            "stateMutability": "Nonpayable",
+            "type": "Function"
+        },
+        {
+            "payable": true,
+            "inputs": [
+                {
+                    "name": "_autoRate",
+                    "type": "uint256"
+                },
+                {
+                    "name": "_suggest",
+                    "type": "uint256"
+                }
+            ],
+            "name": "ToTheMoon",
+            "stateMutability": "Payable",
+            "type": "Function"
+        },
+        {
+            "payable": true,
+            "inputs": [
+                {
+                    "name": "_autoRate",
+                    "type": "uint256"
+                },
+                {
+                    "name": "_suggest",
+                    "type": "uint256"
+                },
+                {
+                    "name": "_rcode",
+                    "type": "string"
+                }
+            ],
+            "name": "WelcomeToTronBetMoon",
+            "stateMutability": "Payable",
+            "type": "Function"
+        },
+        {
+            "inputs": [
+                {
+                    "name": "_newAdmin",
+                    "type": "address"
+                }
+            ],
+            "name": "setAdmin",
+            "stateMutability": "Nonpayable",
+            "type": "Function"
+        },
+        {
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ],
+            "constant": true,
+            "name": "isPaused",
+            "stateMutability": "View",
+            "type": "Function"
+        },
+        {
+            "inputs": [
+                {
+                    "name": "_pause",
+                    "type": "bool"
+                }
+            ],
+            "name": "setPause",
+            "stateMutability": "Nonpayable",
+            "type": "Function"
+        },
+        {
+            "outputs": [
+                {
+                    "type": "address"
+                }
+            ],
+            "constant": true,
+            "name": "addrAdmin",
+            "stateMutability": "View",
+            "type": "Function"
+        },
+        {
+            "outputs": [
+                {
+                    "name": "addrMoon",
+                    "type": "address"
+                },
+                {
+                    "name": "addrPool",
+                    "type": "address"
+                }
+            ],
+            "constant": true,
+            "name": "getInterface",
+            "stateMutability": "View",
+            "type": "Function"
+        },
+        {
+            "stateMutability": "Nonpayable",
+            "type": "Constructor"
+        }
+    ]
+}

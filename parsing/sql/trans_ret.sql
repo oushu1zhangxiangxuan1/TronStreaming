@@ -117,3 +117,5 @@ SELECT * from trans_ret_log_topics limit 10;
 SELECT * from trans_ret_inter_trans limit 10;
 SELECT * from trans_ret_inter_trans_call_value limit 10;
 SELECT * from trans_ret_order_detail limit 10;
+
+SELECT count(1) FROM trans_ret_error WHERE err != 'block not exists';
