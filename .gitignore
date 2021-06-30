@@ -137,3 +137,5 @@ streaming/last.id
 streaming/sync.pid
 
 classified
+
+*.csv
