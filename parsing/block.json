@@ -1,6 +1,6 @@
 {
     "input_dir": "/data2/20210425/output-directory/database",
-    "output_dir": "/data2/20210425/block_parsed",
+    "output_dir": "/data2/20210425/block_lack_parsed",
     "start_num": 0,
     "end_num": 100
 }
