@@ -536,7 +536,7 @@ class TransParser(BaseParser):
         odAppend = {"trans_id": appendData["id"]}
 
         # if hasattr(data.ret, "orderDetails"):
-        #     ods = getattr(data.raw_data, "orderDetails")
+        #     ods = getattr(data.ret, "orderDetails")
         #     for od in ods:
         #         OrderDetailParser.Parse(writer, od, odAppend)
 
