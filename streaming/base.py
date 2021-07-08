@@ -74,6 +74,14 @@ class BaseParser:
     colIndex = []
     table = None
 
+    def __init__(self, engine="csv"):
+        if engine == "csv":
+            self.Exec = self.Parse
+        elif engine == "sql":
+            self.Exec = self.Sql
+        else:
+            raise "unexpect engine type: {}".format(engine)
+
     def Parse(self, writer, data, appendData):
         if len(self.colIndex) == 0 or self.table is None:
             logging.error("请勿直接调用抽象类方法，请实例化类并未对象变量赋值")
@@ -108,7 +116,7 @@ class BaseParser:
             if col.FromAppend:
                 vals.append(appendData[col.name])
             else:
-                vals.append(col.oc.getattr(data))
+                vals.append(col.oc.get(data))
         sql = "INSERT INTO {} VALUES %s".format(self.table)
         execute_values(cur, sql, [vals], template=None, page_size=100)
         # cur.execute("INSERT INTO {}({}) VALUES {}")
@@ -126,6 +134,7 @@ class OriginColumn:
         name=None,
         colType="bytes",
         castFunc=None,
+        castFuncSql=None,
         oc=None,
         listHead=False,
         default=None,
@@ -135,14 +144,23 @@ class OriginColumn:
         # self.toNum = None
         self.listHead = listHead
         self.default = default
+        if not self.oc:
+            self.type = colType
+            self.castFunc = castFunc
+            self.castFuncSql = castFuncSql
+            if castFunc is None and colType == "bytes":
+                self.castFunc = bytes2HexStr
+
+    def String(self, v):
+        if self.castFunc:
+            v = self.castFunc(v)
+        return v
 
     def hasattr(self, data):
-        if not data:
-            return False
-        has = self.name in data
+        has = hasattr(data, self.name)
         if not has:
             return False
-        subData = data.get(self.name)
+        subData = getattr(data, self.name)
         if self.listHead:
             if len(subData) == 0:
                 return False
@@ -155,12 +173,45 @@ class OriginColumn:
         try:
             if not self.hasattr(data):
                 return self.default
+            subData = getattr(data, self.name)
+            if self.listHead:
+                subData = subData[0]
+            if not self.oc:
+                return self.String(subData)
+            return self.oc.getattr(subData)
+        except Exception as e:
+            logging.error(
+                "Failed to getattr: {}\n From data: {}".format(self.name, data)
+            )
+            raise e
+
+    def has(self, data):
+        if not data:
+            return False
+        has = self.name in data
+        if not has:
+            return False
+        subData = data.get(self.name)
+        if self.listHead:
+            if len(subData) == 0:
+                return False
+            subData = subData[0]
+        if not self.oc:
+            return True
+        return self.oc.has(subData)
+
+    def get(self, data):
+        try:
+            if not self.has(data):
+                return self.default
             subData = data.get(self.name)
             if self.listHead:
                 subData = subData[0]
             if not self.oc:
+                if self.castFuncSql:
+                    return self.castFuncSql(subData)
                 return subData
-            return self.oc.getattr(subData)
+            return self.oc.get(subData)
         except Exception as e:
             logging.error(
                 "Failed to getattr: {}\n From data: {}".format(self.name, data)

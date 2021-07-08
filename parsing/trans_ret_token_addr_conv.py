@@ -3,41 +3,36 @@ import env
 import sys
 import csv
 import datetime
-from Crypto.Util.number import bytes_to_long as b2l
+
+# from Crypto.Util.number import bytes_to_long as b2l
 from parsing.base import addressFromBytes
 
 env.touch()
 
-trc20_in_file = "/DATA/tron_trc20/from_to_amount.csv"
+hex_file = "trans_ret_log_token_address.csv"
 
-trc20_out_file = "/DATA/tron_trc20/from_to_amount_conv.csv"
+base58_file = "trans_ret_log_token_address_conv.csv"
 
-total = 100000
+total = 80307
 
-# trc20_in_file = "usdt_head.csv"
+# hex_file = "usdt_head.csv"
 
-# trc20_out_file = "usdt_conv.csv"
-
-
-def topic2Address(topic):
-    return addressFromBytes(bytes.fromhex("41" + topic[-40:]))
+# base58_file = "usdt_conv.csv"
 
 
 def main():
     start = datetime.datetime.now()
     i = 0
-    with open(trc20_in_file) as rf:
+    with open(hex_file) as rf:
         r_csv = csv.reader(rf)
-        with open(trc20_out_file, "w") as wf:
+        with open(base58_file, "w") as wf:
             w_csv = csv.writer(wf)
             conv_start = datetime.datetime.now()
             read_time = (conv_start - start).total_seconds()
             print("读取耗时 {} 微秒, {} 秒".format(read_time * 10 ** 6, read_time))
             for rline in r_csv:
                 # print("src data: ", rline)
-                rline[3] = addressFromBytes(bytes.fromhex("41" + rline[3][-40:]))
-                rline[4] = addressFromBytes(bytes.fromhex("41" + rline[4][-40:]))
-                rline[5] = b2l(bytes.fromhex(rline[5]))
+                rline.append(addressFromBytes(bytes.fromhex("41" + rline[0])))
                 # print("dst data: ", rline)
                 w_csv.writerow(rline)
                 i += 1
@@ -76,11 +71,11 @@ def main():
 
 
 if "__main__" == __name__:
-    if len(sys.argv) < 3:
-        print("Please set input csv path")
-        exit(-1)
-    trc20_in_file = sys.argv[1]
-    trc20_out_file = sys.argv[2]
+    # if len(sys.argv) < 3:
+    #     print("Please set input csv path")
+    #     exit(-1)
+    # hex_file = sys.argv[1]
+    # base58_file = sys.argv[2]
     main()
 
 # 读csv

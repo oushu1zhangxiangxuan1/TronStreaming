@@ -73,7 +73,7 @@ CREATE TABLE realtime_trans( -- TOCHECK:order_id, asset_issue_id
     fee bigint,
     ret int, -- NULL means SUCCESS
     contract_type int,
-    contract_ret int, -- NULL means SUCCESS
+    contract_ret int, -- NULL means SUCCESS -- TODO: 使用sql转换？
     asset_issue_id text,
     withdraw_amount bigint,
     unfreeze_amount bigint,

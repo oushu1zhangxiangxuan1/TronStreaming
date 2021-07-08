@@ -12,7 +12,6 @@ import time
 from streaming.block import BlockParser
 
 env.touch()
-blockParser = BlockParser()
 
 
 class Config:
@@ -119,6 +118,7 @@ class TronUpdate:
         6. 将区块号加一并循环第一步
         7. 如果找不到文件则sleep interval秒
         """
+        blockParser = BlockParser(engine="sql")
         while True:
 
             if not os.path.exists(self.getBlockFile()):
