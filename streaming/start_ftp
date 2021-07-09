@@ -1,0 +1,1 @@
+nohup python ftp_sync.py 2>&1 &

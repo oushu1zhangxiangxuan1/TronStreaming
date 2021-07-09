@@ -130,7 +130,7 @@ class SyncTron:
             except Exception as e:
                 with open("last.id", "w") as f:
                     f.write(str(self.curBlock))
-                logging.error("failed to get block info: ", e)
+                logging.error("failed to get block info: {}".format(e))
                 time.sleep(self.config.Interval)
 
     def sync_with_ceiling(self):
